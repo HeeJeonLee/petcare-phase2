@@ -2,14 +2,6 @@
   "buildCommand": "npm run build",
   "installCommand": "npm install",
   "framework": "vite",
-   "env": [
-    "VITE_ANTHROPIC_API_KEY",
-    "VITE_SUPABASE_URL",
-    "VITE_SUPABASE_ANON_KEY",
-    "VITE_GOOGLE_MAPS_API_KEY",
-    "RESEND_API_KEY",
-    "PETCARE_ADMIN_EMAIL"
-  ],
   "headers": [
     {
       "source": "/(.*)",

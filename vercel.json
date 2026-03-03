@@ -2,8 +2,7 @@
   "buildCommand": "npm run build",
   "installCommand": "npm install",
   "framework": "vite",
-  "zero-config": true,
-  "env": [
+   "env": [
     "VITE_ANTHROPIC_API_KEY",
     "VITE_SUPABASE_URL",
     "VITE_SUPABASE_ANON_KEY",

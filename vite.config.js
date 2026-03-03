@@ -59,17 +59,6 @@ export default defineConfig({
         navigateFallback: '/index.html',
         runtimeCaching: [
           {
-            urlPattern: /^https:\/\/maps\.googleapis\.com\/.*/i,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'google-maps-cache',
-              expiration: {
-                maxEntries: 50,
-                maxAgeSeconds: 86400 * 30 // 30일
-              }
-            }
-          },
-          {
             urlPattern: /^https:\/\/api\.anthropic\.com\/.*/i,
             handler: 'NetworkFirst',
             options: {
@@ -112,9 +101,6 @@ export default defineConfig({
             'react',
             'react-dom',
             '@anthropic-ai/sdk'
-          ],
-          'maps': [
-            'google-maps'
           ]
         }
       }

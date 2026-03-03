@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <!-- Primary Meta Tags -->
+    <title>PetCare+ - AI 펫보험 비교 플랫폼</title>
+    <meta name="title" content="PetCare+ - AI 펫보험 비교 플랫폼" />
+    <meta name="description" content="Claude AI 기반 24시간 무료 펫보험 상담 및 8개 보험사 실시간 비교. 반려동물을 위한 최적의 보험을 찾으세요." />
+    <meta name="keywords" content="펫보험, 반려동물보험, 보험비교, AI 상담, 강아지보험, 고양이보험" />
+    <meta name="author" content="PetCare+ (수인AI브릿지)" />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://petcare-plus.vercel.app" />
+    <meta property="og:title" content="PetCare+ - AI 펫보험 비교 플랫폼" />
+    <meta property="og:description" content="Claude AI로 만드는 펫보험 맞춤 상담 서비스" />
+    <meta property="og:image" content="https://petcare-plus.vercel.app/og-image.png" />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://petcare-plus.vercel.app" />
+    <meta property="twitter:title" content="PetCare+ - AI 펫보험 비교 플랫폼" />
+    <meta property="twitter:description" content="Claude AI로 만드는 펫보험 맞춤 상담 서비스" />
+    <meta property="twitter:image" content="https://petcare-plus.vercel.app/og-image.png" />
+
+    <!-- Canonical -->
+    <link rel="canonical" href="https://petcare-plus.vercel.app" />
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#3b82f6" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="PetCare+" />
+
+    <!-- Preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://api.anthropic.com" />
+
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+    <!-- Styles -->
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html, body {
+        font-family: 'Inter', sans-serif;
+        background-color: #ffffff;
+        color: #1f2937;
+      }
+
+      .app-loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      }
+
+      .spinner {
+        border: 4px solid rgba(255, 255, 255, 0.3);
+        border-radius: 50%;
+        border-top: 4px solid white;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+
+      #root {
+        animation: fadeIn 0.5s ease-in;
+      }
+    </style>
+
+    <!-- Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-XXXXXXXXXX', {
+        'anonymize_ip': true,
+        'cookie_flags': 'SameSite=None;Secure'
+      });
+    </script>
+  </head>
+
+  <body>
+    <div id="root">
+      <div class="app-loading">
+        <div class="spinner"></div>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.jsx"></script>
+
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').then(reg => {
+            console.log('✅ Service Worker 등록 완료');
+          }).catch(err => {
+            console.log('❌ Service Worker 등록 실패:', err);
+          });
+        });
+      }
+
+      const link = document.createElement('link');
+      link.rel = 'manifest';
+      link.href = '/manifest.json';
+      document.head.appendChild(link);
+    </script>
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "PetCare+",
+        "description": "AI 기반 펫보험 비교 플랫폼",
+        "url": "https://petcare-plus.vercel.app",
+        "logo": "https://petcare-plus.vercel.app/logo.png",
+        "founder": {
+          "@type": "Person",
+          "name": "이희천",
+          "email": "hejunl@hanmail.net"
+        },
+        "contactPoint": {
+          "@type": "ContactPoint",
+          "contactType": "Customer Service",
+          "email": "hejunl@hanmail.net",
+          "telephone": "010-5650-0670"
+        }
+      }
+    </script>
+  </body>
+</html>

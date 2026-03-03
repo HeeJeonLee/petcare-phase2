@@ -1,0 +1,31 @@
+{
+  "buildCommand": "npm run build",
+  "installCommand": "npm install",
+  "framework": "vite",
+  "zero-config": true,
+  "env": [
+    "VITE_ANTHROPIC_API_KEY",
+    "VITE_SUPABASE_URL",
+    "VITE_SUPABASE_ANON_KEY",
+    "VITE_GOOGLE_MAPS_API_KEY",
+    "RESEND_API_KEY",
+    "PETCARE_ADMIN_EMAIL",
+    "VITE_COMPANY_ADDRESS",
+    "VITE_CONSULTANT_PHONE"
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600, stale-while-revalidate=86400"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        }
+      ]
+    }
+  ]
+}

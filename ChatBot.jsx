@@ -1,6 +1,4 @@
 // src/components/ChatBot.jsx
-// Claude API 기반 24시간 AI 챗봇
-
 import React, { useState, useRef, useEffect } from 'react';
 import Anthropic from '@anthropic-ai/sdk';
 
@@ -9,7 +7,7 @@ const ChatBot = ({ onClose }) => {
   const [messages, setMessages] = useState([
     {
       id: 1,
-      text: '안녕하세요! 🐾 PetCare+ AI입니다. 펫보험, 반려동물 건강, 청구 절차 등 편하게 물어봐 주세요.',
+      text: '안녕하세요! PetCare+ AI입니다. 펫보험, 반려동물 건강 등 편하게 물어봐 주세요.',
       sender: 'bot',
       timestamp: new Date(),
       isStreaming: false
@@ -23,14 +21,7 @@ const ChatBot = ({ onClose }) => {
     apiKey: import.meta.env.VITE_ANTHROPIC_API_KEY
   });
 
-  const systemPrompt = `당신은 PetCare+ AI 챗봇입니다. 친절하고 자연스러운 펫보험 전문가입니다.
-• 친구와 카톡하듯 자연스럽고 편한 톤 사용
-• 반려동물 주인의 걱정 이해하고 공감
-• 필요시 이모지로 따뜻한 감정 표현 (😊, 🐾, ❤️)
-• 한 번에 1-2개 문단으로 간결하게 답변
-• "~인 것 같아요", "도움이 될 것 같은데요" 같은 자연스러운 표현 사용
-• 의학적 진단은 "수의사 선생님께 꼭 확인받으세요" 권유
-• "무조건", "최고", "무료보장" 같은 과장 표현 금지`;
+  const systemPrompt = `당신은 PetCare+ AI 챗봇입니다. 친절하고 자연스럽습니다.`;
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -42,7 +33,6 @@ const ChatBot = ({ onClose }) => {
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    
     if (!input.trim()) return;
 
     const userMessage = {
@@ -71,7 +61,9 @@ const ChatBot = ({ onClose }) => {
         ]
       });
 
-      const botResponseText = response.content[0].type === 'text' ? response.content[0].text : '죄송해요. 다시 시도해 주세요.';
+      const botResponseText = response.content[0].type === 'text' 
+        ? response.content[0].text 
+        : '죄송해요. 다시 시도해 주세요.';
       
       const botMessage = {
         id: messages.length + 2,
@@ -85,15 +77,13 @@ const ChatBot = ({ onClose }) => {
 
     } catch (error) {
       console.error('ChatBot 오류:', error);
-      
       const errorMessage = {
         id: messages.length + 2,
-        text: '죄송해요. 일시적 오류가 발생했습니다. 다시 시도해 주세요.',
+        text: '죄송해요. 일시적 오류가 발생했습니다.',
         sender: 'bot',
         timestamp: new Date(),
         isStreaming: false
       };
-
       setMessages(prev => [...prev, errorMessage]);
     } finally {
       setLoading(false);
@@ -102,9 +92,7 @@ const ChatBot = ({ onClose }) => {
 
   const handleClose = () => {
     setIsOpen(false);
-    if (onClose) {
-      onClose();
-    }
+    if (onClose) onClose();
   };
 
   return (
@@ -119,19 +107,16 @@ const ChatBot = ({ onClose }) => {
       )}
 
       {isOpen && (
-        <div className="absolute bottom-0 right-0 w-96 h-[600px] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+        <div className="absolute bottom-0 right-0 w-96 h-96 bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden">
           <div className="bg-gradient-to-r from-blue-500 to-purple-500 text-white p-4 flex justify-between items-center">
             <div className="flex items-center gap-2">
               <span className="text-2xl">🐾</span>
               <div>
-                <h3 className="font-bold text-lg">PetCare+ AI</h3>
-                <p className="text-xs text-purple-100">온라인 상태</p>
+                <h3 className="font-bold">PetCare+ AI</h3>
+                <p className="text-xs">온라인</p>
               </div>
             </div>
-            <button
-              onClick={handleClose}
-              className="hover:bg-white hover:bg-opacity-20 p-2 rounded-full"
-            >
+            <button onClick={handleClose} className="hover:bg-white hover:bg-opacity-20 p-2 rounded-full">
               ✕
             </button>
           </div>
@@ -139,17 +124,12 @@ const ChatBot = ({ onClose }) => {
           <div className="flex-1 overflow-y-auto p-4 bg-blue-50 space-y-3">
             {messages.map(message => (
               <div key={message.id} className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div
-                  className={`max-w-xs px-4 py-3 rounded-2xl text-sm ${
-                    message.sender === 'user'
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-white border border-gray-200'
-                  }`}
-                >
+                <div className={`max-w-xs px-4 py-2 rounded-lg text-sm ${
+                  message.sender === 'user'
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-white border border-gray-200'
+                }`}>
                   <p>{message.text}</p>
-                  <span className="text-xs mt-1 block opacity-60">
-                    {message.timestamp.toLocaleTimeString('ko-KR', {hour: '2-digit', minute: '2-digit'})}
-                  </span>
                 </div>
               </div>
             ))}
@@ -162,16 +142,16 @@ const ChatBot = ({ onClose }) => {
                 type="text"
                 value={input}
                 onChange={e => setInput(e.target.value)}
-                placeholder="메시지 입력..."
+                placeholder="메시지..."
                 disabled={loading}
                 className="flex-1 border border-gray-300 rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               <button
                 type="submit"
-                disabled={loading || !input.trim()}
-                className="bg-blue-500 hover:bg-blue-600 text-white rounded-full px-4 py-2 disabled:opacity-50"
+                disabled={loading}
+                className="bg-blue-500 text-white px-4 py-2 rounded-full disabled:opacity-50"
               >
-                {loading ? '...' : '➤'}
+                전송
               </button>
             </div>
           </form>

@@ -19,11 +19,6 @@ import { COMPANY_INFO } from './constants/company';
 const App = () => {
   const [activeSection, setActiveSection] = useState('home');
   const [showChatBot, setShowChatBot] = useState(false);
-  const [formData, setFormData] = useState({
-    name: '', phone: '', email: '', petName: '', petAge: '', message: ''
-  });
-  const [submitStatus, setSubmitStatus] = useState(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const sections = {
     home: null,
@@ -39,37 +34,6 @@ const App = () => {
     mypage: <MyPage />
   };
 
-  const handleConsultationSubmit = async (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setSubmitStatus(null);
-
-    try {
-      const response = await fetch('/api/send-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: formData.name,
-          phone: formData.phone,
-          email: formData.email,
-          petType: formData.petName,
-          petAge: formData.petAge,
-          message: formData.message
-        })
-      });
-
-      if (response.ok) {
-        setSubmitStatus({ type: 'success', message: '상담 신청이 완료되었습니다! 24시간 내에 연락드리겠습니다.' });
-        setFormData({ name: '', phone: '', email: '', petName: '', petAge: '', message: '' });
-      } else {
-        setSubmitStatus({ type: 'error', message: '전송 중 오류가 발생했습니다. 다시 시도해주세요.' });
-      }
-    } catch (error) {
-      console.error('상담 신청 오류:', error);
-      setSubmitStatus({ type: 'error', message: '네트워크 오류가 발생했습니다.' });
-    } finally {
-      setIsSubmitting(false);
-    }
   };
 
   const HomePage = () => (
@@ -136,65 +100,25 @@ const App = () => {
         </div>
       </section>
 
-      {/* Consultation Form */}
+      {/* Consultation CTA */}
       <section id="consultation" className="py-20 px-4 bg-gradient-to-br from-green-50 to-emerald-50">
-        <div className="max-w-2xl mx-auto">
-          <h2 className="text-4xl font-bold text-gray-800 mb-8 text-center">💬 무료 상담 신청</h2>
-          <p className="text-center text-gray-600 mb-12">전문가와의 무료 상담을 신청하세요. 24시간 내에 연락드리겠습니다.</p>
+        <div className="max-w-2xl mx-auto text-center">
+          <h2 className="text-4xl font-bold text-gray-800 mb-8">💬 전문가 무료 상담</h2>
+          <p className="text-xl text-gray-700 mb-8">이희전 보험상담사와의 맞춤형 상담을 받으세요</p>
+          <p className="text-gray-600 mb-12">25년 금융보험 경력 & 미래에셋 파트너<br />24시간 내 연락드리겠습니다</p>
 
-          <form onSubmit={handleConsultationSubmit} className="bg-white rounded-2xl shadow-lg p-8 space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">이름 *</label>
-                <input type="text" required value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="홍길동" className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-green-500 outline-none" />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">연락처 *</label>
-                <input type="tel" required value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  placeholder="010-0000-0000" className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-green-500 outline-none" />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">이메일 *</label>
-                <input type="email" required value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  placeholder="email@example.com" className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-green-500 outline-none" />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">반려동물 이름</label>
-                <input type="text" value={formData.petName} onChange={(e) => setFormData({ ...formData, petName: e.target.value })}
-                  placeholder="뽀삐" className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-green-500 outline-none" />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">나이</label>
-                <input type="number" value={formData.petAge} onChange={(e) => setFormData({ ...formData, petAge: e.target.value })}
-                  placeholder="3" className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-green-500 outline-none" />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">상담 내용</label>
-              <textarea value={formData.message} onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                placeholder="궁금하신 사항을 입력해주세요..." rows="5"
-                className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-green-500 outline-none"></textarea>
-            </div>
-
-            {submitStatus && (
-              <div className={`p-4 rounded-lg ${submitStatus.type === 'success' ? 'bg-green-100 text-green-800 border border-green-200' : 'bg-red-100 text-red-800 border border-red-200'}`}>
-                {submitStatus.message}
-              </div>
-            )}
-
-            <button type="submit" disabled={isSubmitting}
-              className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:shadow-lg text-white py-3 rounded-lg font-bold text-lg transition disabled:opacity-50 disabled:cursor-not-allowed">
-              {isSubmitting ? '전송 중...' : '무료 상담 신청하기'}
+          <div className="flex flex-col sm:flex-row gap-6 justify-center">
+            <button onClick={() => window.location.href = 'https://insurance-consultant-landing.vercel.app/'}
+              className="bg-gradient-to-r from-green-500 to-emerald-600 hover:shadow-lg text-white px-8 py-4 rounded-lg font-bold text-lg transition transform hover:scale-105">
+              📋 전문가 상담 신청
             </button>
+            <button onClick={() => setShowChatBot(true)}
+              className="bg-gradient-to-r from-blue-500 to-cyan-600 hover:shadow-lg text-white px-8 py-4 rounded-lg font-bold text-lg transition transform hover:scale-105">
+              🤖 AI 챗봇 즉시 상담
+            </button>
+          </div>
 
-            <p className="text-xs text-gray-500 text-center">본 서비스는 정보 제공용이며 보험 권유가 아닙니다. 개인정보는 상담 목적으로만 사용됩니다.</p>
-          </form>
+          <p className="text-xs text-gray-500 mt-8">본 서비스는 정보 제공용이며 보험 권유가 아닙니다.</p>
         </div>
       </section>
 

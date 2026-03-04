@@ -84,3 +84,6 @@ secrets.json
 # DB
 *.sqlite
 *.db
+
+.vercel
+.env*.local

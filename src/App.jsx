@@ -19,6 +19,7 @@ import { COMPANY_INFO } from './constants/company';
 const App = () => {
   const [activeSection, setActiveSection] = useState('home');
   const [showChatBot, setShowChatBot] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [formData, setFormData] = useState({
     name: '', phone: '', email: '', petName: '', petAge: '', message: ''
   });
@@ -83,8 +84,7 @@ const App = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div className="space-y-8">
               <h1 className="text-5xl sm:text-6xl font-bold text-gray-900 leading-tight">
-                🐾 우리 반려동물을 위한<br />
-                <span className="text-gradient">AI 펫보험 비교</span>
+                🐾 <span className="text-gradient">PetCare+</span>
               </h1>
 
               <p className="text-xl text-gray-700 leading-relaxed">
@@ -246,18 +246,16 @@ const App = () => {
             </div>
 
             <div>
-              <h4 className="font-bold text-lg mb-4">빠른 링크</h4>
-              <ul className="space-y-2 text-sm text-gray-400">
-                <li><button onClick={() => setActiveSection('recommendation')} className="hover:text-white">🤖 AI 추천</button></li>
-                <li><button onClick={() => setActiveSection('comparison')} className="hover:text-white">📊 보험 비교</button></li>
-                <li><button onClick={() => setActiveSection('chart')} className="hover:text-white">📈 차트 분석</button></li>
-                <li><button onClick={() => setActiveSection('filter')} className="hover:text-white">🔍 고급 필터</button></li>
-                <li><button onClick={() => setActiveSection('personality')} className="hover:text-white">🧠 성향 분석</button></li>
-                <li><button onClick={() => setActiveSection('education')} className="hover:text-white">📚 교육 센터</button></li>
-                <li><button onClick={() => setActiveSection('calculator')} className="hover:text-white">💚 의료비 계산</button></li>
-                <li><button onClick={() => setActiveSection('hospital')} className="hover:text-white">🏥 병원 검색</button></li>
-                <li><button onClick={() => setActiveSection('claim')} className="hover:text-white">📋 청구 가이드</button></li>
-                <li><button onClick={() => setActiveSection('mypage')} className="hover:text-white">👤 마이페이지</button></li>
+              <h4 className="font-bold text-lg mb-4">제휴 보험사 (8개)</h4>
+              <ul className="space-y-1 text-sm text-gray-400">
+                <li>• 메리츠화재 (펫퍼민트)</li>
+                <li>• 삼성화재 (위풍댕댕)</li>
+                <li>• DB손보 (아이러브펫)</li>
+                <li>• 현대해상 (굿앤굿)</li>
+                <li>• KB손보 (금쪽같은펫)</li>
+                <li>• 한화손보 (펫함께)</li>
+                <li>• 농협손보 (펫케어)</li>
+                <li>• 롯데손보 (펫건강)</li>
               </ul>
             </div>
 
@@ -296,20 +294,51 @@ const App = () => {
               🐾 PetCare+
             </button>
 
-            <div className="hidden md:flex items-center gap-8">
-              <button onClick={() => setActiveSection('recommendation')} className="text-gray-700 hover:text-blue-600 font-medium">AI 추천</button>
-              <button onClick={() => setActiveSection('comparison')} className="text-gray-700 hover:text-blue-600 font-medium">보험 비교</button>
-              <button onClick={() => setActiveSection('chart')} className="text-gray-700 hover:text-blue-600 font-medium">차트 분석</button>
-              <button onClick={() => setActiveSection('filter')} className="text-gray-700 hover:text-blue-600 font-medium">고급 필터</button>
-              <button onClick={() => setActiveSection('personality')} className="text-gray-700 hover:text-blue-600 font-medium">성향 분석</button>
-              <button onClick={() => setActiveSection('education')} className="text-gray-700 hover:text-blue-600 font-medium">교육</button>
-              <button onClick={() => setActiveSection('calculator')} className="text-gray-700 hover:text-blue-600 font-medium">계산기</button>
-              <button onClick={() => setActiveSection('hospital')} className="text-gray-700 hover:text-blue-600 font-medium">병원 검색</button>
-              <button onClick={() => setActiveSection('claim')} className="text-gray-700 hover:text-blue-600 font-medium">청구 가이드</button>
-              <button onClick={() => setActiveSection('mypage')} className="text-gray-700 hover:text-blue-600 font-medium">마이페이지</button>
-              <button onClick={() => setShowChatBot(true)} className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-medium">💬 상담</button>
+            {/* Desktop Navigation */}
+            <div className="hidden lg:flex items-center gap-6">
+              <button onClick={() => setActiveSection('recommendation')} className="text-gray-700 hover:text-blue-600 font-medium text-sm">AI 추천</button>
+              <button onClick={() => setActiveSection('comparison')} className="text-gray-700 hover:text-blue-600 font-medium text-sm">보험 비교</button>
+              <button onClick={() => setActiveSection('chart')} className="text-gray-700 hover:text-blue-600 font-medium text-sm">차트</button>
+              <button onClick={() => setActiveSection('filter')} className="text-gray-700 hover:text-blue-600 font-medium text-sm">필터</button>
+              <button onClick={() => setActiveSection('personality')} className="text-gray-700 hover:text-blue-600 font-medium text-sm">성향</button>
+              <button onClick={() => setActiveSection('education')} className="text-gray-700 hover:text-blue-600 font-medium text-sm">교육</button>
+              <button onClick={() => setActiveSection('calculator')} className="text-gray-700 hover:text-blue-600 font-medium text-sm">계산기</button>
+              <button onClick={() => setActiveSection('hospital')} className="text-gray-700 hover:text-blue-600 font-medium text-sm">병원</button>
+              <button onClick={() => setActiveSection('claim')} className="text-gray-700 hover:text-blue-600 font-medium text-sm">청구</button>
+              <button onClick={() => setActiveSection('mypage')} className="text-gray-700 hover:text-blue-600 font-medium text-sm">마이페이지</button>
+              <button onClick={() => setShowChatBot(true)} className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-medium text-sm">💬 상담</button>
             </div>
+
+            {/* Mobile Menu Button */}
+            <button onClick={() => setShowMobileMenu(!showMobileMenu)} className="lg:hidden text-gray-700 p-2">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                {showMobileMenu ? (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                ) : (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                )}
+              </svg>
+            </button>
           </div>
+
+          {/* Mobile Navigation - Vertical */}
+          {showMobileMenu && (
+            <div className="lg:hidden py-4 border-t border-gray-100">
+              <div className="flex flex-col space-y-2">
+                <button onClick={() => { setActiveSection('recommendation'); setShowMobileMenu(false); }} className="text-gray-700 hover:text-blue-600 hover:bg-blue-50 font-medium py-2 px-3 rounded-lg text-left">🤖 AI 추천</button>
+                <button onClick={() => { setActiveSection('comparison'); setShowMobileMenu(false); }} className="text-gray-700 hover:text-blue-600 hover:bg-blue-50 font-medium py-2 px-3 rounded-lg text-left">📊 보험 비교</button>
+                <button onClick={() => { setActiveSection('chart'); setShowMobileMenu(false); }} className="text-gray-700 hover:text-blue-600 hover:bg-blue-50 font-medium py-2 px-3 rounded-lg text-left">📈 차트 분석</button>
+                <button onClick={() => { setActiveSection('filter'); setShowMobileMenu(false); }} className="text-gray-700 hover:text-blue-600 hover:bg-blue-50 font-medium py-2 px-3 rounded-lg text-left">🔍 고급 필터</button>
+                <button onClick={() => { setActiveSection('personality'); setShowMobileMenu(false); }} className="text-gray-700 hover:text-blue-600 hover:bg-blue-50 font-medium py-2 px-3 rounded-lg text-left">🧠 성향 분석</button>
+                <button onClick={() => { setActiveSection('education'); setShowMobileMenu(false); }} className="text-gray-700 hover:text-blue-600 hover:bg-blue-50 font-medium py-2 px-3 rounded-lg text-left">📚 교육 센터</button>
+                <button onClick={() => { setActiveSection('calculator'); setShowMobileMenu(false); }} className="text-gray-700 hover:text-blue-600 hover:bg-blue-50 font-medium py-2 px-3 rounded-lg text-left">💚 의료비 계산</button>
+                <button onClick={() => { setActiveSection('hospital'); setShowMobileMenu(false); }} className="text-gray-700 hover:text-blue-600 hover:bg-blue-50 font-medium py-2 px-3 rounded-lg text-left">🏥 병원 검색</button>
+                <button onClick={() => { setActiveSection('claim'); setShowMobileMenu(false); }} className="text-gray-700 hover:text-blue-600 hover:bg-blue-50 font-medium py-2 px-3 rounded-lg text-left">📋 청구 가이드</button>
+                <button onClick={() => { setActiveSection('mypage'); setShowMobileMenu(false); }} className="text-gray-700 hover:text-blue-600 hover:bg-blue-50 font-medium py-2 px-3 rounded-lg text-left">👤 마이페이지</button>
+                <button onClick={() => { setShowChatBot(true); setShowMobileMenu(false); }} className="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-3 rounded-lg text-left mt-2">💬 AI 상담</button>
+              </div>
+            </div>
+          )}
         </div>
       </nav>
 

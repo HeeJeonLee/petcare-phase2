@@ -272,7 +272,7 @@ const App = () => {
             <p>
               {COMPANY_INFO.name} | 
               사업자등록번호: {COMPANY_INFO.businessNumber} | 
-              📞 {COMPANY_INFO.phone}
+              대표전화: {COMPANY_INFO.phone}
             </p>
             <p className="mt-2">
               © {new Date().getFullYear()} PetCare+. All rights reserved. | 

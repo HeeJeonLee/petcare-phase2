@@ -5,7 +5,7 @@
 export const COMPANY_INFO = {
   // 회사 기본 정보
   name: '수인AI브릿지',
-  businessNumber: '신규 사업자', // 신규 사업자로 표기
+  businessNumber: '151-09-03201',
   representative: '이희천',
   
   // 보험설계사 정보 (중요)

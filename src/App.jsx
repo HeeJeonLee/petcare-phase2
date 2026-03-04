@@ -53,7 +53,8 @@ const App = () => {
 
               <p className="text-xl text-gray-700 leading-relaxed">
                 Claude AI가 당신의 반려동물에게 최적의 보험을 찾아드립니다.<br />
-                <strong>8개 보험사 실시간 비교 + 24시간 무료 AI 상담</strong>
+                <strong>8개 보험사 실시간 비교 + 24시간 무료 AI 상담</strong><br />
+                <span className="text-sm text-gray-600">(정보 제공용 - 보험 권유 아님)</span>
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4">
@@ -103,14 +104,23 @@ const App = () => {
       {/* Consultation CTA */}
       <section id="consultation" className="py-20 px-4 bg-gradient-to-br from-green-50 to-emerald-50">
         <div className="max-w-2xl mx-auto text-center">
-          <h2 className="text-4xl font-bold text-gray-800 mb-8">💬 전문가 무료 상담</h2>
-          <p className="text-xl text-gray-700 mb-8">이희전 보험상담사와의 맞춤형 상담을 받으세요</p>
-          <p className="text-gray-600 mb-12">25년 금융보험 경력 & 미래에셋 파트너<br />24시간 내 연락드리겠습니다</p>
+          <h2 className="text-4xl font-bold text-gray-800 mb-8">💬 보험설계사 무료 상담</h2>
+          
+          {/* 보험설계사 정보 박스 */}
+          <div className="bg-white rounded-xl shadow-lg p-6 mb-8 border-2 border-green-200">
+            <p className="text-lg font-bold text-gray-800 mb-2">보험설계사 {COMPANY_INFO.consultant.name}</p>
+            <p className="text-sm text-gray-600 mb-1">설계사 코드: {COMPANY_INFO.consultant.designationCode}</p>
+            <p className="text-sm text-gray-600 mb-3">{COMPANY_INFO.consultant.company} | {COMPANY_INFO.consultant.experience}</p>
+            <div className="border-t pt-4">
+              <p className="text-gray-700 font-semibold">맞춤형 상담 신청</p>
+              <p className="text-sm text-gray-600 mt-2">정보 제공만 받고 싶으신가요? 위 무료 AI 상담을 이용하세요.<br />개별 상담은 아래 상담 신청을 통해 진행됩니다.</p>
+            </div>
+          </div>
 
           <div className="flex flex-col sm:flex-row gap-6 justify-center">
-            <button onClick={() => window.location.href = 'https://insurance-consultant-landing.vercel.app/'}
+            <button onClick={() => window.open('https://insurance-consultant-landing.vercel.app/', '_blank')}
               className="bg-gradient-to-r from-green-500 to-emerald-600 hover:shadow-lg text-white px-8 py-4 rounded-lg font-bold text-lg transition transform hover:scale-105">
-              📋 전문가 상담 신청
+              📋 보험설계사 상담 신청
             </button>
             <button onClick={() => setShowChatBot(true)}
               className="bg-gradient-to-r from-blue-500 to-cyan-600 hover:shadow-lg text-white px-8 py-4 rounded-lg font-bold text-lg transition transform hover:scale-105">
@@ -118,7 +128,7 @@ const App = () => {
             </button>
           </div>
 
-          <p className="text-xs text-gray-500 mt-8">본 서비스는 정보 제공용이며 보험 권유가 아닙니다.</p>
+          <p className="text-xs text-gray-500 mt-8">📌 본 서비스는 정보 제공용이며, 보험 권유가 아닙니다.</p>
         </div>
       </section>
 
@@ -149,14 +159,46 @@ const App = () => {
         </div>
       </section>
 
-      {/* Disclaimer */}
-      <section className="py-12 px-4 bg-yellow-50 border-t-4 border-yellow-200">
+      {/* Disclaimer Section 1 - 상단 */}
+      <section className="py-8 px-4 bg-red-50 border-b-2 border-red-300">
         <div className="max-w-4xl mx-auto text-center">
-          <h3 className="text-2xl font-bold text-gray-800 mb-4">⚠️ 면책 공고</h3>
-          <p className="text-gray-700 leading-relaxed">
-            본 플랫폼은 펫보험 가입을 권유하는 것이 아니며, <strong>정보 제공</strong> 목적입니다.
-            정확한 가입 조건, 보장 내용, 보험료는 각 보험사에 직접 문의하시기 바랍니다.
+          <p className="text-sm font-bold text-red-700">
+            ⚠️ 중요 공지: 본 플랫폼은 펫보험 비교 및 정보 제공용이며, 보험 권유행위를 하지 않습니다.
           </p>
+        </div>
+      </section>
+
+      {/* Disclaimer Section 2 - 상세 공고 */}
+      <section className="py-12 px-4 bg-yellow-50 border-t-4 border-yellow-400">
+        <div className="max-w-4xl mx-auto">
+          <h3 className="text-2xl font-bold text-gray-800 mb-6 text-center">⚠️ 법적 공고 (필독)</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-white rounded-lg p-6 border-l-4 border-red-500">
+              <p className="font-bold text-red-700 mb-3">❌ 본 서비스가 하지 않는 것</p>
+              <ul className="text-sm text-gray-700 space-y-2">
+                <li>• 보험 권유행위</li>
+                <li>• 보험 중개행위</li>
+                <li>• 직접 계약 체결</li>
+                <li>• 보험료 산정 보장</li>
+              </ul>
+            </div>
+            <div className="bg-white rounded-lg p-6 border-l-4 border-green-500">
+              <p className="font-bold text-green-700 mb-3">✅ 본 서비스의 목적</p>
+              <ul className="text-sm text-gray-700 space-y-2">
+                <li>• 펫보험 정보 제공</li>
+                <li>• 보험사 비교 지원</li>
+                <li>• AI 기반 추천</li>
+                <li>• 교육 자료 제공</li>
+              </ul>
+            </div>
+          </div>
+          <div className="bg-blue-50 rounded-lg p-6 mt-6 border-l-4 border-blue-500">
+            <p className="text-gray-800 leading-relaxed">
+              <strong>정확한 정보는 각 보험사에 직접 확인하세요.</strong> 가입 조건, 보장 내용, 보험료, 면책사항 등은 보험상품설명서, 약관, 
+              보험사 홈페이지를 통해 정확히 확인 후 가입 결정을 하시기 바랍니다. 
+              본 플랫폼의 정보는 참고용이며, 정확성을 보장하지 않습니다.
+            </p>
+          </div>
         </div>
       </section>
 
@@ -166,7 +208,14 @@ const App = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
             <div>
               <h4 className="font-bold text-lg mb-4">🐾 PetCare+</h4>
-              <p className="text-gray-400 text-sm">AI 기반 펫보험 비교 플랫폼<br />24시간 무료 상담 서비스</p>
+              <p className="text-gray-400 text-sm">AI 기반 펫보험 비교<br />정보 제공 서비스</p>
+            </div>
+
+            <div>
+              <h4 className="font-bold text-lg mb-4">💬 보험설계사</h4>
+              <p className="text-gray-400 text-sm font-semibold mb-1">{COMPANY_INFO.consultant.name}</p>
+              <p className="text-gray-500 text-xs mb-1">설계사 코드: {COMPANY_INFO.consultant.designationCode}</p>
+              <p className="text-gray-500 text-xs">{COMPANY_INFO.consultant.company}</p>
             </div>
 
             <div>
@@ -194,17 +243,17 @@ const App = () => {
             </div>
           </div>
 
-          <div className="border-t border-gray-700 pt-8 text-center text-gray-500 text-xs">
-            <p>
-              {COMPANY_INFO.name} | 
-              사업자등록번호: {COMPANY_INFO.businessNumber} | 
-              📞 {COMPANY_INFO.phone}
-            </p>
-            <p className="mt-2">
-              © {new Date().getFullYear()} PetCare+. All rights reserved. | 
-              <button className="hover:text-white ml-2">개인정보처리방침</button> | 
-              <button className="hover:text-white ml-2">서비스이용약관</button>
-            </p>
+          <div className="border-t border-gray-700 pt-8">
+            <div className="mb-4">
+              <p className="text-gray-400 text-xs mb-2">
+                ⚠️ 본 서비스는 정보 제공용이며 보험 권유가 아닙니다. 정확한 조건은 각 보험사에 확인하세요.
+              </p>
+              <p className="text-gray-500 text-xs text-center">
+                © {new Date().getFullYear()} PetCare+ | 
+                사업자등록번호: {COMPANY_INFO.businessNumber} | 
+                개인정보처리방침 | 서비스이용약관
+              </p>
+            </div>
           </div>
         </div>
       </footer>

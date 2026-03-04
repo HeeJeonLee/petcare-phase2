@@ -37,7 +37,7 @@ export default async function handler(req, res) {
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-3-5-haiku-20241022',
+        model: 'claude-3-haiku-20240307',
         max_tokens: 500,
         system: `당신은 PetCare+ 펫보험 전문 AI 상담사입니다.
 

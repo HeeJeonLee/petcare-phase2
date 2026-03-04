@@ -1,38 +1,60 @@
 import React, { useState } from 'react';
-import Anthropic from '@anthropic-ai/sdk';
 
 const ChatBot = () => {
   const [isOpen, setIsOpen] = useState(true);
   const [messages, setMessages] = useState([{
     id: 1,
-    text: 'PetCare+ AI입니다. 펫보험 관련 질문 편하게 물어봐 주세요!',
+    text: '안녕하세요! PetCare+ AI 상담사입니다 🐾\n펫보험에 대해 궁금한 점을 물어보세요!',
     sender: 'bot'
   }]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const client = new Anthropic({
-    apiKey: import.meta.env.VITE_ANTHROPIC_API_KEY
-  });
-
   const handleSend = async (e) => {
     e.preventDefault();
-    if (!input.trim()) return;
+    if (!input.trim() || loading) return;
 
-    setMessages(p => [...p, { id: p.length + 1, text: input, sender: 'user' }]);
+    const userMessage = input.trim();
+    setMessages(prev => [...prev, { id: Date.now(), text: userMessage, sender: 'user' }]);
     setInput('');
     setLoading(true);
 
     try {
-      const res = await client.messages.create({
-        model: 'claude-opus-4-1-20250805',
-        max_tokens: 300,
-        messages: [...messages.map(m => ({ role: m.sender === 'user' ? 'user' : 'assistant', content: m.text })), { role: 'user', content: input }]
+      // 대화 기록을 API 형식으로 변환 (첫 인사 메시지 제외)
+      const chatHistory = messages
+        .slice(1) // 첫 번째 인사 메시지 제외
+        .map(m => ({
+          role: m.sender === 'user' ? 'user' : 'assistant',
+          content: m.text
+        }));
+      
+      // 현재 사용자 메시지 추가
+      chatHistory.push({ role: 'user', content: userMessage });
+
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: chatHistory })
       });
 
-      setMessages(p => [...p, { id: p.length + 1, text: res.content[0].text, sender: 'bot' }]);
+      const data = await response.json();
+
+      if (response.ok && data.content) {
+        setMessages(prev => [...prev, { 
+          id: Date.now() + 1, 
+          text: data.content, 
+          sender: 'bot' 
+        }]);
+      } else {
+        throw new Error(data.error || '응답 오류');
+      }
     } catch (err) {
-      setMessages(p => [...p, { id: p.length + 1, text: '죄송해요. 다시 시도해 주세요.', sender: 'bot' }]);
+      console.error('Chat error:', err);
+      setMessages(prev => [...prev, { 
+        id: Date.now() + 1, 
+        text: '죄송해요, 일시적인 오류가 발생했어요. 잠시 후 다시 시도해 주세요! 🙏', 
+        sender: 'bot' 
+      }]);
     } finally {
       setLoading(false);
     }

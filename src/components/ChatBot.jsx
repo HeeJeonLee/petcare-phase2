@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-const ChatBot = () => {
+const ChatBot = ({ onClose }) => {
   const [isOpen, setIsOpen] = useState(true);
   const [messages, setMessages] = useState([{
     id: 1,
@@ -9,6 +9,11 @@ const ChatBot = () => {
   }]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const handleClose = () => {
+    setIsOpen(false);
+    if (onClose) onClose();
+  };
 
   const handleSend = async (e) => {
     e.preventDefault();
@@ -65,21 +70,36 @@ const ChatBot = () => {
   }
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 w-80 h-80 bg-white rounded-lg shadow-lg flex flex-col">
-      <div className="bg-blue-500 text-white p-3 flex justify-between items-center">
-        <h3>PetCare+ AI</h3>
-        <button onClick={() => setIsOpen(false)}>✕</button>
+    <div className="fixed bottom-6 right-6 z-50 w-96 h-[500px] bg-white rounded-2xl shadow-2xl flex flex-col border border-gray-200">
+      <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white p-4 rounded-t-2xl flex justify-between items-center">
+        <div className="flex items-center gap-2">
+          <span className="text-2xl">🐾</span>
+          <div>
+            <h3 className="font-bold">PetCare+ AI</h3>
+            <span className="text-xs opacity-80">Claude AI 기반 24시간 상담</span>
+          </div>
+        </div>
+        <button onClick={handleClose} className="hover:bg-white/20 p-1 rounded">✕</button>
       </div>
-      <div className="flex-1 overflow-y-auto p-3 space-y-2">
+      <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
         {messages.map(m => (
-          <div key={m.id} className={`p-2 rounded-lg ${m.sender === 'user' ? 'bg-blue-100 ml-8' : 'bg-gray-100 mr-8'}`}>
-            {m.text}
+          <div key={m.id} className={`p-3 rounded-xl max-w-[85%] ${m.sender === 'user' ? 'bg-blue-500 text-white ml-auto' : 'bg-white shadow-sm mr-auto border'}`}>
+            <pre className="whitespace-pre-wrap font-sans text-sm">{m.text}</pre>
           </div>
         ))}
+        {loading && (
+          <div className="bg-white shadow-sm p-3 rounded-xl mr-auto border">
+            <div className="flex gap-1">
+              <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></span>
+              <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></span>
+              <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></span>
+            </div>
+          </div>
+        )}
       </div>
-      <form onSubmit={handleSend} className="p-3 border-t flex gap-2">
-        <input value={input} onChange={e => setInput(e.target.value)} placeholder="메시지 입력..." className="flex-1 border px-2 py-1 rounded" disabled={loading} />
-        <button type="submit" disabled={loading} className="bg-blue-500 text-white px-3 py-1 rounded">전송</button>
+      <form onSubmit={handleSend} className="p-4 border-t bg-white rounded-b-2xl flex gap-2">
+        <input value={input} onChange={e => setInput(e.target.value)} placeholder="펫보험에 대해 물어보세요..." className="flex-1 border border-gray-300 px-4 py-2 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500" disabled={loading} />
+        <button type="submit" disabled={loading} className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-2 rounded-full font-semibold hover:shadow-lg transition disabled:opacity-50">전송</button>
       </form>
     </div>
   );

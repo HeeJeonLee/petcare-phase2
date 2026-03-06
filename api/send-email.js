@@ -126,11 +126,10 @@ export default async function handler(req, res) {
     console.log(`   상담 내용: ${message || '(없음)'}`);
     console.log(`   관리자 이메일: ${adminEmail}`);
 
-    // Resend API 호출
+    // Resend API 호출 (도메인 미인증 상태에서는 cc 제거)
     const requestBody = JSON.stringify({
       from: `PetCare+ 상담팀 <${fromEmail}>`,
       to: [adminEmail],
-      cc: email ? [email] : [],
       subject: `[PetCare+] 새로운 펫 라이프 설계 신청 - ${name}`,
       html: emailHtml,
       replyTo: email || adminEmail,

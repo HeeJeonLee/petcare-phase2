@@ -2,7 +2,12 @@
 // Vercel Serverless Function
 // POST /api/send-email 엔드포인트
 
-import { COMPANY_INFO } from '../src/constants/company.js';
+// 회사 정보 (serverless에서는 외부 import 불가)
+const COMPANY_INFO = {
+  name: '수인AI브릿지',
+  businessNumber: '151-09-03201',
+  phone: '010-5650-0670'
+};
 
 export default async function handler(req, res) {
   // CORS 설정

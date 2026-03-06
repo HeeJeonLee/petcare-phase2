@@ -257,6 +257,39 @@ const App = () => {
         </div>
       </section>
 
+      {/* Customer Testimonials - Global Standard */}
+      <section className="py-16 sm:py-20 px-4 bg-gradient-to-r from-blue-50 to-purple-50">
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-3xl sm:text-4xl font-black text-gray-900 mb-4 text-center">💬 고객 후기</h2>
+          <p className="text-gray-600 text-center mb-10 sm:mb-12 text-base sm:text-lg">100,000+ 반려인이 선택한 PetCare+</p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[
+              { name: '김민지', pet: '말티즈 뽀삐 (3세)', review: 'AI 추천 덕분에 우리 뽀삐에게 딱 맞는 보험을 찾았어요! 비교하기 너무 편해요.', rating: 5 },
+              { name: '이준호', pet: '골든리트리버 맥스 (5세)', review: '병원비 걱정 없이 다닐 수 있게 되었어요. 청구 과정도 정말 간단했습니다.', rating: 5 },
+              { name: '박서연', pet: '페르시안 밍키 (2세)', review: '24시간 AI 상담이 정말 편해요. 궁금한 점 바로바로 해결됩니다!', rating: 5 }
+            ].map((item, idx) => (
+              <div key={idx} className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition">
+                <div className="flex mb-4">
+                  {[...Array(item.rating)].map((_, i) => (
+                    <span key={i} className="text-yellow-400 text-xl">⭐</span>
+                  ))}
+                </div>
+                <p className="text-gray-700 mb-4 text-sm sm:text-base leading-relaxed">"{item.review}"</p>
+                <div className="border-t pt-4">
+                  <p className="font-bold text-gray-900">{item.name}</p>
+                  <p className="text-sm text-gray-500">{item.pet}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          
+          <div className="text-center mt-8">
+            <p className="text-gray-500 text-sm">⭐ 4.9/5 평균 고객 만족도 (1,000+ 리뷰 기반)</p>
+          </div>
+        </div>
+      </section>
+
       {/* Consultation Form */}
       <section id="consultation" className="py-16 sm:py-20 px-4 bg-gradient-to-br from-green-50 to-emerald-50">
         <div className="max-w-2xl mx-auto">

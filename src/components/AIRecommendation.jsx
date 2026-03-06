@@ -1,8 +1,8 @@
 // src/components/AIRecommendation.jsx
 // AI 기반 맞춤형 펫보험 추천 시스템
+// 서버사이드 API를 통해 Claude AI 호출 (CORS 해결)
 
 import React, { useState } from 'react';
-import Anthropic from '@anthropic-ai/sdk';
 
 const AIRecommendation = () => {
   const [step, setStep] = useState(1); // 1: 정보수집, 2: 분석중, 3: 결과
@@ -24,10 +24,6 @@ const AIRecommendation = () => {
   const [recommendation, setRecommendation] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-
-  const client = new Anthropic({
-    apiKey: import.meta.env.VITE_ANTHROPIC_API_KEY
-  });
 
   const insuranceDatabase = {
     meritz: {
@@ -167,16 +163,19 @@ ${ins.name} (${ins.product})
 - 특정 보험사 비난
       `;
 
-      const message = await client.messages.create({
-        model: 'claude-opus-4-1-20250805',
-        max_tokens: 1500,
-        messages: [{
-          role: 'user',
-          content: prompt
-        }]
+      // 서버 API를 통해 Claude 호출 (CORS 문제 해결)
+      const response = await fetch('/api/recommend', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt })
       });
 
-      const recommendationText = message.content[0].type === 'text' ? message.content[0].text : '';
+      if (!response.ok) {
+        throw new Error('AI 분석 요청 실패');
+      }
+
+      const data = await response.json();
+      const recommendationText = data.content || '';
 
       setRecommendation({
         petInfo: formData,

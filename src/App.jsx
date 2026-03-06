@@ -20,11 +20,6 @@ const App = () => {
   const [activeSection, setActiveSection] = useState('home');
   const [showChatBot, setShowChatBot] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
-  const [formData, setFormData] = useState({
-    name: '', phone: '', email: '', petName: '', petAge: '', message: ''
-  });
-  const [submitStatus, setSubmitStatus] = useState(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const sections = {
     home: null,
@@ -38,39 +33,6 @@ const App = () => {
     hospital: <HospitalFinder />,
     claim: <ClaimProcess />,
     mypage: <MyPage />
-  };
-
-  const handleConsultationSubmit = async (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setSubmitStatus(null);
-
-    try {
-      const response = await fetch('/api/send-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: formData.name,
-          phone: formData.phone,
-          email: formData.email,
-          petType: formData.petName,
-          petAge: formData.petAge,
-          message: formData.message
-        })
-      });
-
-      if (response.ok) {
-        setSubmitStatus({ type: 'success', message: '상담 신청이 완료되었습니다! 24시간 내에 연락드리겠습니다.' });
-        setFormData({ name: '', phone: '', email: '', petName: '', petAge: '', message: '' });
-      } else {
-        setSubmitStatus({ type: 'error', message: '전송 중 오류가 발생했습니다. 다시 시도해주세요.' });
-      }
-    } catch (error) {
-      console.error('상담 신청 오류:', error);
-      setSubmitStatus({ type: 'error', message: '네트워크 오류가 발생했습니다.' });
-    } finally {
-      setIsSubmitting(false);
-    }
   };
 
   const HomePage = () => (
@@ -290,65 +252,56 @@ const App = () => {
         </div>
       </section>
 
-      {/* Consultation Form */}
+      {/* Consultation CTA - 랜딩페이지 연결 (보험업법 준수: 직접 고객 정보 수집 없음) */}
       <section id="consultation" className="py-16 sm:py-20 px-4 bg-gradient-to-br from-green-50 to-emerald-50">
-        <div className="max-w-2xl mx-auto">
-          <h2 className="text-3xl sm:text-4xl font-black text-gray-800 mb-4 text-center">💬 무료 전문 상담</h2>
-          <p className="text-center text-gray-600 mb-8 sm:mb-12 text-sm sm:text-base">전문가와의 무료 상담을 신청하세요. 24시간 내에 연락드리겠습니다.</p>
-
-          <form onSubmit={handleConsultationSubmit} className="bg-white rounded-2xl sm:rounded-3xl shadow-xl p-6 sm:p-8 space-y-5 sm:space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">이름 *</label>
-                <input type="text" required value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="홍길동" className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-green-500 outline-none text-sm sm:text-base" />
+        <div className="max-w-2xl mx-auto text-center">
+          <h2 className="text-3xl sm:text-4xl font-black text-gray-800 mb-4">🧑‍💼 전문가 상담 신청</h2>
+          <p className="text-gray-600 mb-6 sm:mb-8 text-sm sm:text-base">
+            25년 경력의 보험 전문가 이희전 상담사가<br/>
+            맞춤형 펫보험 상담을 제공해드립니다.
+          </p>
+          
+          <div className="bg-white rounded-2xl sm:rounded-3xl shadow-xl p-6 sm:p-8 mb-6">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6">
+              <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-2xl font-bold shadow-lg">
+                이희전
               </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">연락처 *</label>
-                <input type="tel" required value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  placeholder="010-0000-0000" className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-green-500 outline-none text-sm sm:text-base" />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">이메일 *</label>
-                <input type="email" required value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  placeholder="email@example.com" className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-green-500 outline-none text-sm sm:text-base" />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">반려동물 이름</label>
-                <input type="text" value={formData.petName} onChange={(e) => setFormData({ ...formData, petName: e.target.value })}
-                  placeholder="뽀삐" className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-green-500 outline-none text-sm sm:text-base" />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">나이</label>
-                <input type="number" value={formData.petAge} onChange={(e) => setFormData({ ...formData, petAge: e.target.value })}
-                  placeholder="3" className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-green-500 outline-none text-sm sm:text-base" />
+              <div className="text-center sm:text-left">
+                <h3 className="text-xl font-bold text-gray-900">이희전 보험상담사</h3>
+                <p className="text-purple-600 font-medium">미래에셋금융서비스</p>
+                <p className="text-sm text-gray-500">상담사 코드: 251220019</p>
               </div>
             </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">상담 내용</label>
-              <textarea value={formData.message} onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                placeholder="궁금하신 사항을 입력해주세요..." rows="4"
-                className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-green-500 outline-none text-sm sm:text-base"></textarea>
-            </div>
-
-            {submitStatus && (
-              <div className={`p-4 rounded-xl ${submitStatus.type === 'success' ? 'bg-green-100 text-green-800 border border-green-200' : 'bg-red-100 text-red-800 border border-red-200'}`}>
-                {submitStatus.message}
+            
+            <div className="grid grid-cols-3 gap-4 mb-6 text-center">
+              <div className="bg-gray-50 rounded-xl p-3">
+                <div className="text-xl font-bold text-blue-600">25년</div>
+                <div className="text-xs text-gray-500">금융 경력</div>
               </div>
-            )}
-
-            <button type="submit" disabled={isSubmitting}
-              className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:shadow-lg text-white py-4 rounded-xl font-bold text-base sm:text-lg transition disabled:opacity-50 disabled:cursor-not-allowed">
-              {isSubmitting ? '전송 중...' : '✉️ 무료 상담 신청하기'}
-            </button>
-
-            <p className="text-xs text-gray-500 text-center">본 서비스는 정보 제공용이며 보험 권유가 아닙니다. 개인정보는 상담 목적으로만 사용됩니다.</p>
-          </form>
+              <div className="bg-gray-50 rounded-xl p-3">
+                <div className="text-xl font-bold text-purple-600">8개사</div>
+                <div className="text-xs text-gray-500">보험사 제휴</div>
+              </div>
+              <div className="bg-gray-50 rounded-xl p-3">
+                <div className="text-xl font-bold text-green-600">24/7</div>
+                <div className="text-xs text-gray-500">AI 상담</div>
+              </div>
+            </div>
+            
+            <a 
+              href="https://insurance-consultant-landing.vercel.app"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:shadow-lg text-white py-4 rounded-xl font-bold text-base sm:text-lg transition text-center"
+            >
+              🧑‍💼 전문가 상담 신청하기 →
+            </a>
+          </div>
+          
+          <p className="text-xs text-gray-500">
+            ⚠️ 본 플랫폼은 정보 제공 목적이며, 보험 권유가 아닙니다.<br/>
+            전문 상담은 보험업법에 따라 자격을 갖춘 보험설계사가 진행합니다.
+          </p>
         </div>
       </section>
 

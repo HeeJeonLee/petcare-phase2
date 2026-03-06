@@ -97,10 +97,21 @@ const ChatBot = ({ onClose }) => {
           </div>
         )}
       </div>
-      <form onSubmit={handleSend} className="p-4 border-t bg-white rounded-b-2xl flex gap-2">
+      <form onSubmit={handleSend} className="p-4 border-t bg-white flex gap-2">
         <input value={input} onChange={e => setInput(e.target.value)} placeholder="펫보험에 대해 물어보세요..." className="flex-1 border border-gray-300 px-4 py-2 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500" disabled={loading} />
         <button type="submit" disabled={loading} className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-2 rounded-full font-semibold hover:shadow-lg transition disabled:opacity-50">전송</button>
       </form>
+      {/* 전문가 상담 신청 버튼 */}
+      <div className="p-3 border-t bg-gray-50 rounded-b-2xl">
+        <a 
+          href="https://insurance-consultant-landing.vercel.app"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-2.5 rounded-full font-semibold text-center hover:shadow-lg transition text-sm"
+        >
+          🧑‍💼 전문가 상담 신청하기
+        </a>
+      </div>
     </div>
   );
 };

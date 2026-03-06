@@ -337,14 +337,14 @@ const App = () => {
         </div>
       </section>
 
-      {/* Disclaimer */}
-      <section className="py-10 sm:py-12 px-4 bg-amber-50 border-t-4 border-amber-300">
-        <div className="max-w-4xl mx-auto text-center">
-          <h3 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4">⚠️ 면책 공고</h3>
-          <p className="text-gray-700 leading-relaxed text-sm sm:text-base">
-            본 플랫폼은 펫보험 가입을 권유하는 것이 아니며, <strong>정보 제공</strong> 목적입니다.
-            정확한 가입 조건, 보장 내용, 보험료는 각 보험사에 직접 문의하시기 바랍니다.
-          </p>
+      {/* Disclaimer - 있는 듯 없는 듯 */}
+      <section className="py-6 px-4 bg-gray-100">
+        <div className="max-w-3xl mx-auto">
+          <div className="border border-gray-300 rounded-lg px-4 py-3 bg-white/50">
+            <p className="text-gray-500 text-xs leading-relaxed text-center">
+              ⚠️ <span className="font-medium">면책 공고</span> | 본 플랫폼은 펫보험 가입을 권유하는 것이 아니며, 정보 제공 목적입니다. 정확한 가입 조건, 보장 내용, 보험료는 각 보험사에 직접 문의하시기 바랍니다.
+            </p>
+          </div>
         </div>
       </section>
 

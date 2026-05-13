@@ -17,6 +17,7 @@ node_modules/
 .env.local
 .env.*.local
 .env.production.local
+ .env.petcare
 *.pem
 
 # Text files (source backups)

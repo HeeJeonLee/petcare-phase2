@@ -24,12 +24,14 @@ const config           = require('./config');
 const ContentGenerator = require('./content-generator');
 const LegalChecker     = require('./legal-checker');
 const SNSPublisher     = require('./sns-publisher');
+const NaverBlog        = require('./naver-blog');
 
 class MasterAgent {
   constructor() {
     this.generator = new ContentGenerator();
     this.checker   = new LegalChecker();
     this.publisher = new SNSPublisher();
+    this.naver     = new NaverBlog();
     this.results   = [];
     this.errors    = [];
   }
@@ -66,15 +68,37 @@ class MasterAgent {
       return { platform: 'instagram', topic: topic.topic, file, igResult };
     });
 
+    // 네이버 블로그 생성 & 포스팅
+    await this._runStep('📝 네이버 블로그 포스팅', async () => {
+      const data = await this.generator.generateNaverBlogHtml(topic);
+
+      // 법규 검증
+      const check = this.checker.check(data.textContent);
+      if (!check.pass) {
+        throw new Error(`법규 검증 실패: ${check.forbidden.join(', ') || check.missing.join(', ')}`);
+      }
+      console.log('  ✅ 법규 검증 통과');
+
+      // 파일 백업 (항상)
+      const file = this.naver.saveToFile(dateStr, data.title, data.htmlContent);
+
+      // 네이버 블로그 게시 (토큰 있을 때만)
+      const naverResult = await this.naver.post(data.title, data.htmlContent, data.tags);
+
+      return { platform: 'naver_blog', topic: topic.topic, file, naverResult };
+    });
+
     // 완료 Telegram 알림
     const elapsed  = ((Date.now() - start) / 1000).toFixed(1);
-    const igPosted = this.results.some(r => r.igResult ; r.igResult.success);
+    const igPosted    = this.results.some(r => r.igResult    && r.igResult.success);
+    const naverPosted = this.results.some(r => r.naverResult && r.naverResult.success);
 
     await this.publisher.notifyTelegram(
       `<b>✅ 새론금융 AI 에이전트 완료</b>\n` +
       `📅 ${now.toLocaleDateString('ko-KR')}\n` +
       `📌 주제: ${topic.topic}\n` +
       `📸 Instagram: ${igPosted ? '게시 완료 ✅' : '파일 저장 (토큰 미설정)'}\n` +
+      `📝 네이버 블로그: ${naverPosted ? '게시 완료 ✅' : '파일 저장 (토큰 미설정)'}\n` +
       `⏱️ 소요: ${elapsed}초`
     );
 
@@ -87,8 +111,13 @@ class MasterAgent {
     console.log(`📁 백업: ./generated/instagram/`);
     if (!igPosted) {
       console.log('\n💡 Instagram 자동게시 활성화 방법:');
-      console.log('   .env 파일에 다음 3가지를 설정하세요:');
+      console.log('   GitHub Secrets에 다음을 설정하세요:');
       console.log('   INSTAGRAM_USER_ID, INSTAGRAM_ACCESS_TOKEN, OG_IMAGE_BASE_URL');
+    }
+    if (!naverPosted) {
+      console.log('\n💡 네이버 블로그 자동게시 활성화 방법:');
+      console.log('   GitHub Secrets에 다음을 설정하세요:');
+      console.log('   NAVER_CLIENT_ID, NAVER_CLIENT_SECRET, NAVER_REFRESH_TOKEN, NAVER_BLOG_ID');
     }
     console.log('═'.repeat(54) + '\n');
 

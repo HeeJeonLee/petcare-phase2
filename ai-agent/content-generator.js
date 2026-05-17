@@ -35,39 +35,54 @@ class ContentGenerator {
   }
 
   /**
-   * 네이버 블로그 포스트 생성
+   * 네이버 블로그 포스트 생성 (HTML 형식 — SEO 최적화)
+   * ─────────────────────────────────────────────────
+   * 왜 네이버 블로그인가?
+   *   → "아파트담보대출 은행거절" 같은 고의도 키워드 검색 시
+   *     네이버 블로그가 상위 노출 (인스타그램은 검색 유입 불가)
+   *   → 40-60대 아파트 소유자가 주로 네이버 사용
+   *   → 1회 게시 → 수개월 지속 유입 (인스타는 하루 노출)
    */
-  async generateNaverBlog(topic) {
-    const prompt = `당신은 새론금융대부중개의 공식 블로그 작성 AI입니다.
-    
-아래 조건을 반드시 지켜서 블로그 포스트를 작성하세요:
+  async generateNaverBlogHtml(topic) {
+    const topicTags = (topic.hashtags || topic.tags || []);
 
+    const prompt = `당신은 아파트 담보대출 정보 블로그의 SEO 전문 작성자입니다.
+
+[타겟]
+네이버에서 "${topic.topic}" 관련 키워드를 검색하는 아파트 소유자.
+특히: 개인사업자, 은행 거절 경험자, 역전세 임대인, 갭투자자, DSR 초과자.
+
+[오늘의 주제]
 주제: ${topic.topic}
-카테고리: ${topic.category}
-해시태그: ${topic.tags.map(t => '#' + t).join(' ')}
+핵심 각도: ${topic.angle || '정보 제공 + 실용적 조언'}
 
-필수 조건:
-1. 500~800자 분량 (블로그 최적 길이)
-2. 한국어로 쉽게 이해되도록 작성
-3. 대부업법 상 금지 표현 절대 사용 금지:
-   - "보장", "100% 승인", "무조건" 같은 단어 사용 금지
-   - 대출 승인을 확정하는 표현 금지
-4. 정보 제공 목적으로 작성 (직접 대출 권유 금지)
-5. 상담 문의는 "1555-2137" 안내
-6. SEO를 위해 주제 관련 키워드를 자연스럽게 포함
-7. 제목: 검색에 잘 걸리도록 구체적으로
+[작성 지침]
+1. 제목: 핵심 키워드 포함, 검색 의도 반영 (예: "아파트담보대출 은행거절 후 해결방법")
+2. 본문: 600~900자 (네이버 블로그 SEO 최적 길이)
+3. H2 소제목 2~3개로 구조화 (가독성 + SEO)
+4. 구체적 사례 또는 시나리오 포함 (추상적 표현 금지)
+5. 전문 용어는 쉬운 설명 병기 (예: "DSR(총부채원리금상환비율)")
+6. 마지막 문단: "아파트 담보대출 무료 상담: ☎ 1555-2137" 포함
+7. 법정 고지문은 시스템 자동 추가 — 직접 작성 금지
 
-블로그 포스트 형식:
-[제목]
-(블로그 제목)
+[절대 금지 표현]
+"보장", "100% 승인", "무조건 가능", "확정", "반드시 됩니다"
 
-[본문]
-(본문 내용)
+[출력 형식 — 반드시 이 형식 그대로]
+===TITLE===
+(블로그 제목 — 60자 이내)
 
-[마무리]
-(상담 안내 문구)
+===CONTENT===
+<h2>(소제목 1)</h2>
+<p>(본문 문단)</p>
 
-주의: 글 말미에 법정 고지 문구는 시스템이 자동 추가하므로 직접 작성하지 마세요.`;
+<h2>(소제목 2)</h2>
+<p>(본문 문단)</p>
+
+<h2>(소제목 3 — 선택)</h2>
+<p>(본문 문단)</p>
+
+<p><strong>아파트 담보대출 무료 상담: ☎ 1555-2137</strong></p>`;
 
     try {
       const response = await this.client.messages.create({
@@ -76,16 +91,31 @@ class ContentGenerator {
         messages: [{ role: 'user', content: prompt }],
       });
 
-      const content = response.content[0].text;
-      // 법정 문구 자동 추가
-      const finalContent = this.checker.addLegalDisclosure(content);
-      
+      const raw = response.content[0].text;
+
+      // 제목 파싱
+      const titleMatch = raw.match(/===TITLE===\s*\n(.+)/);
+      const title = titleMatch ? titleMatch[1].trim() : topic.topic;
+
+      // HTML 본문 파싱
+      const contentMatch = raw.match(/===CONTENT===\s*\n([\s\S]+)/);
+      const htmlBody = contentMatch ? contentMatch[1].trim() : `<p>${raw}</p>`;
+
+      // 법정 고지문 HTML로 추가
+      const legalHtml = `<hr><p style="font-size:11px; color:#666; line-height:1.8;">
+${config.legalDisclosure.replace(/\n/g, '<br>')}</p>`;
+      const finalHtml = htmlBody + '\n' + legalHtml;
+
+      // 텍스트 버전 (법규 검사용)
+      const textContent = finalHtml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+
       return {
         platform: 'naver_blog',
-        title: this._extractTitle(content),
-        content: finalContent,
-        tags: topic.tags,
-        legalCheck: this.checker.check(finalContent),
+        title,
+        htmlContent: finalHtml,
+        textContent,
+        tags: topicTags,
+        legalCheck: this.checker.check(textContent),
         generatedAt: new Date().toISOString(),
       };
     } catch (err) {

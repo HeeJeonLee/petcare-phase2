@@ -56,6 +56,10 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           OG_IMAGE_BASE_URL: ${{ secrets.OG_IMAGE_BASE_URL }}
+          NAVER_CLIENT_ID: ${{ secrets.NAVER_CLIENT_ID }}
+          NAVER_CLIENT_SECRET: ${{ secrets.NAVER_CLIENT_SECRET }}
+          NAVER_REFRESH_TOKEN: ${{ secrets.NAVER_REFRESH_TOKEN }}
+          NAVER_BLOG_ID: ${{ secrets.NAVER_BLOG_ID }}
         run: node master-agent.js
 
       # 6. 생성된 파일 GitHub에 자동 저장 (백업)

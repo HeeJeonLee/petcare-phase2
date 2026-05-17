@@ -1,10 +1,14 @@
 /**
- * 새론금융대부중개 — 메인 AI 에이전트
+ * 새론금융대부중개 — AI 콘텐츠 생성기
  * =====================================================
- * 이 파일 하나를 실행하면 모든 것이 자동으로 됩니다.
- * 
+ * 원칙:
+ *   - 홈페이지: 전화/문자 전용. SNS 연결 절대 없음.
+ *   - SNS 계정: 모두 제거됨. 명의는 김덕진.
+ *   - 이 에이전트는 콘텐츠를 파일로만 저장합니다.
+ *     자동 게시 없음. 수동으로 복사해서 사용하세요.
+ *
  * 실행 방법: node master-agent.js
- * 자동 실행: GitHub Actions (매일 오전 9시 자동 실행)
+ * 생성 결과: ./generated/ 폴더에 저장
  */
 
 require('dotenv').config();
@@ -12,195 +16,120 @@ require('dotenv').config();
 const config = require('./config');
 const ContentGenerator = require('./content-generator');
 const LegalChecker = require('./legal-checker');
-const SNSPublisher = require('./sns-publisher');
+const FileWriter = require('./sns-publisher');  // 파일 저장 전용
 
 class MasterAgent {
   constructor() {
     this.generator = new ContentGenerator();
     this.checker = new LegalChecker();
-    this.publisher = new SNSPublisher();
+    this.writer = new FileWriter();  // 파일 저장 전용 (SNS 게시 없음)
     this.results = [];
     this.errors = [];
   }
 
   /**
-   * 메인 실행 함수 — 매일 오전 9시 자동 호출
+   * 메인 실행 함수 — 콘텐츠 생성 후 파일 저장
+   * SNS 자동 게시 없음. 명의: 김덕진 · 1555-2137
    */
   async run() {
     const startTime = Date.now();
     const today = new Date();
-    const dayOfWeek = today.getDay(); // 0=일, 1=월, 2=화, ...
+    const dayOfWeek = today.getDay();
+    const dateStr = today.toISOString().substring(0, 10);
     
     console.log(`\n${'='.repeat(50)}`);
-    console.log(`🤖 새론금융 AI 에이전트 시작`);
+    console.log(`📝 새론금융 콘텐츠 생성 시작 (대표: 김덕진)`);
     console.log(`📅 ${today.toLocaleString('ko-KR')}`);
+    console.log(`⚠️  SNS 자동 게시 없음 — 파일 저장 후 수동 사용`);
     console.log(`${'='.repeat(50)}\n`);
-
-    // 시작 알림 (텔레그램)
-    await this.publisher.sendTelegram(
-      `🤖 <b>새론금융 AI 에이전트 시작</b>\n📅 ${today.toLocaleDateString('ko-KR')}\n잠시 후 오늘의 SNS 게시가 완료됩니다.`
-    );
 
     // 오늘의 주제 선택
     const topic = this.generator.selectTodayTopic(dayOfWeek);
     console.log(`📌 오늘의 주제: ${topic.topic} (${topic.category})`);
 
-    // 요일별 SNS 게시
-    const tasks = [];
+    // 모든 포맷 콘텐츠 생성 후 파일 저장
+    const tasks = [
+      this._runTask('블로그 포스트', () => this._saveNaverContent(topic, dateStr)),
+      this._runTask('소셜 카드뉴스', () => this._saveSocialContent(topic, dateStr)),
+      this._runTask('카카오 메시지', () => this._saveKakaoContent(topic, dateStr)),
+      this._runTask('유튜브 스크립트', () => this._saveYoutubeContent(topic, dateStr)),
+    ];
 
-    // 네이버 블로그 (월, 금)
-    if (config.schedule.naverBlogDays.includes(dayOfWeek)) {
-      tasks.push(this._runTask('네이버 블로그', () => this._postNaver(topic)));
-    }
-
-    // 인스타그램 + 페이스북 (화, 토)
-    if (config.schedule.instagramDays.includes(dayOfWeek)) {
-      tasks.push(this._runTask('인스타그램', () => this._postInstagram(topic)));
-      tasks.push(this._runTask('페이스북', () => this._postFacebook(topic)));
-    }
-
-    // 카카오 채널 (수, 일)
-    if (config.schedule.kakaoDays.includes(dayOfWeek)) {
-      tasks.push(this._runTask('카카오 채널', () => this._postKakao(topic)));
-    }
-
-    // 유튜브 쇼츠 스크립트 (목)
-    if (config.schedule.youtubeDays.includes(dayOfWeek)) {
-      tasks.push(this._runTask('유튜브 스크립트', () => this._generateYoutube(topic)));
-    }
-
-    // 모든 작업 순차 실행
     for (const task of tasks) {
       await task();
     }
 
     // 결과 저장
-    const logFile = this.publisher.saveToLog(this.results);
+    const logFile = this.writer.saveToLog(this.results);
     
-    // 완료 보고서 텔레그램 발송
+    // 완료 보고서 출력
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-    await this._sendCompletionReport(elapsed, logFile);
+    this._printReport(elapsed, logFile);
 
-    console.log(`\n✅ 오늘 작업 완료! (${elapsed}초 소요)`);
+    console.log(`\n✅ 콘텐츠 생성 완료! (${elapsed}초 소요)`);
+    console.log(`📁 생성 파일: ${config.outputDir || './generated'}/`);
+    console.log(`\n👉 위 폴더에서 내용 복사 → SNS에 수동 게시하세요`);
     return { success: this.errors.length === 0, results: this.results, errors: this.errors };
   }
 
   // ─── 개별 작업 실행 래퍼 ─────────────────────────
   _runTask(name, fn) {
     return async () => {
-      console.log(`\n📝 ${name} 작업 시작...`);
+      console.log(`\n📝 ${name} 생성 중...`);
       try {
         const result = await fn();
         if (result) {
           this.results.push({ name, ...result });
-          console.log(`✅ ${name} 완료`);
+          console.log(`✅ ${name} 저장 완료: ${result.file || ''}`);
         }
       } catch (err) {
-        const errInfo = { name, error: err.message };
-        this.errors.push(errInfo);
+        this.errors.push({ name, error: err.message });
         console.error(`❌ ${name} 실패: ${err.message}`);
-        await this.publisher.sendTelegram(
-          `🚨 <b>${name} 오류 발생</b>\n오류: ${err.message}`
-        );
       }
     };
   }
 
-  // ─── 네이버 블로그 ────────────────────────────────
-  async _postNaver(topic) {
+  // ─── 네이버 블로그 콘텐츠 저장 ──────────────────────
+  async _saveNaverContent(topic, dateStr) {
     const post = await this.generator.generateNaverBlog(topic);
-    
-    if (!post.legalCheck.pass) {
-      throw new Error(`법규 검사 실패: ${post.legalCheck.missing.join(', ')}`);
-    }
-    
-    const result = await this.publisher.postToNaverBlog(post);
-    return { platform: 'naver', title: post.title, legal: post.legalCheck.pass, ...result };
+    const file = this.writer.saveToFile('naver', dateStr, `제목: ${post.title}\n\n${post.content}`);
+    return { type: 'naver', file, legal: post.legalCheck.pass };
   }
 
-  // ─── 인스타그램 ───────────────────────────────────
-  async _postInstagram(topic) {
+  // ─── 소셜(인스타/페이스북) 콘텐츠 저장 ──────────────
+  async _saveSocialContent(topic, dateStr) {
     const post = await this.generator.generateSocialPost(topic, 'instagram');
-    
-    if (!post.legalCheck.pass) {
-      throw new Error(`법규 검사 실패: ${post.legalCheck.forbidden.join(', ')}`);
-    }
-    
-    const result = await this.publisher.postToInstagram(post);
-    return { platform: 'instagram', legal: post.legalCheck.pass, ...result };
+    const file = this.writer.saveToFile('social', dateStr, post.content);
+    return { type: 'social', file, legal: post.legalCheck.pass };
   }
 
-  // ─── 페이스북 ─────────────────────────────────────
-  async _postFacebook(topic) {
-    const post = await this.generator.generateSocialPost(topic, 'facebook');
-    
-    if (!post.legalCheck.pass) {
-      throw new Error(`법규 검사 실패: ${post.legalCheck.forbidden.join(', ')}`);
-    }
-    
-    const result = await this.publisher.postToFacebook(post);
-    return { platform: 'facebook', legal: post.legalCheck.pass, ...result };
+  // ─── 카카오 메시지 저장 ───────────────────────────────
+  async _saveKakaoContent(topic, dateStr) {
+    const msg = await this.generator.generateKakaoMessage(topic);
+    const file = this.writer.saveToFile('kakao', dateStr, msg.content);
+    return { type: 'kakao', file, legal: msg.legalCheck.pass };
   }
 
-  // ─── 카카오 채널 ──────────────────────────────────
-  async _postKakao(topic) {
-    const message = await this.generator.generateKakaoMessage(topic);
-    
-    if (!message.legalCheck.pass) {
-      throw new Error(`법규 검사 실패`);
-    }
-    
-    const result = await this.publisher.sendKakaoMessage(message);
-    return { platform: 'kakao', legal: message.legalCheck.pass, ...result };
-  }
-
-  // ─── 유튜브 스크립트 ──────────────────────────────
-  async _generateYoutube(topic) {
+  // ─── 유튜브 스크립트 저장 ─────────────────────────────
+  async _saveYoutubeContent(topic, dateStr) {
     const script = await this.generator.generateYoutubeScript(topic);
-    
-    // 스크립트를 파일로 저장 (영상 제작 참고용)
-    const fs = require('fs');
-    const dir = './generated/youtube';
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    
-    const filename = `${dir}/script_${Date.now()}.txt`;
-    fs.writeFileSync(filename, `주제: ${topic.topic}\n\n${script.script}\n\n---설명---\n${script.description}`, 'utf8');
-    
-    return { platform: 'youtube', scriptFile: filename, legal: script.legalCheck.pass };
+    const file = this.writer.saveToFile('youtube', dateStr,
+      `주제: ${topic.topic}\n\n${script.script}\n\n---설명---\n${script.description}`);
+    return { type: 'youtube', file, legal: script.legalCheck.pass };
   }
 
-  // ─── 완료 보고서 ──────────────────────────────────
-  async _sendCompletionReport(elapsed, logFile) {
-    const successCount = this.results.filter(r => r.success !== false).length;
-    const failCount = this.errors.length;
-    const today = new Date().toLocaleDateString('ko-KR');
-
-    let msg = `✅ <b>새론금융 AI 에이전트 완료</b>\n`;
-    msg += `📅 ${today}\n`;
-    msg += `⏱️ 소요시간: ${elapsed}초\n\n`;
-    msg += `📊 <b>오늘 결과:</b>\n`;
-    msg += `✅ 성공: ${successCount}건\n`;
-    
-    this.results.forEach(r => {
-      const icon = r.success === false ? '❌' : '✅';
-      msg += `  ${icon} ${r.name}`;
-      if (r.manual) msg += ' (파일저장)';
-      if (r.postId) msg += ` (ID: ${r.postId})`;
-      msg += '\n';
-    });
-
-    if (failCount > 0) {
-      msg += `\n❌ 실패: ${failCount}건\n`;
-      this.errors.forEach(e => {
-        msg += `  🚫 ${e.name}: ${e.error}\n`;
-      });
-    }
-
-    msg += `\n📁 로그: ${logFile}`;
-    msg += `\n\n💡 문의 전화 상담만 직접 해주시면 됩니다!`;
-    msg += `\n📞 1555-2137`;
-
-    await this.publisher.sendTelegram(msg);
+  // ─── 완료 보고서 출력 ─────────────────────────────────
+  _printReport(elapsed, logFile) {
+    const ok = this.results.filter(r => r.success !== false).length;
+    const fail = this.errors.length;
+    console.log(`\n${'─'.repeat(50)}`);
+    console.log(`📊 완료 보고 (${elapsed}초)  성공 ${ok}건 / 실패 ${fail}건`);
+    this.results.forEach(r => console.log(`  ✅ ${r.name}: ${r.file || '저장'}`))
+    this.errors.forEach(e  => console.log(`  ❌ ${e.name}: ${e.error}`));
+    console.log(`📁 로그: ${logFile}`);
+    console.log(`─`.repeat(50));
+    console.log(`\n대표: 김덕진 · 1555-2137 · 010-5927-9205`);
+    console.log(`(홈페이지 연결 없음 · SNS 자동 게시 없음)`);
   }
 
   /**
@@ -245,6 +174,19 @@ if (require.main === module) {
         process.exit(1);
       });
   }
+}
+
+// ── 직접 실행 ───────────────────────────────────────
+if (require.main === module) {
+  const agent = new MasterAgent();
+  agent.run()
+    .then(result => {
+      process.exit(result.success ? 0 : 1);
+    })
+    .catch(err => {
+      console.error('\n💥 오류:', err.message);
+      process.exit(1);
+    });
 }
 
 module.exports = MasterAgent;

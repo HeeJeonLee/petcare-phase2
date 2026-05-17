@@ -19,6 +19,7 @@ module.exports = {
     address: '경기도 수원시 팔달구 권광로 159, 1동 5층 502호(인계동, 수원프라자)',
     phone: '1555-2137',
     mobile: '010-5927-9205',
+    email: 'sambo003@daum.net',
     website: 'https://saeloan.co.kr',
     validFrom: '2026.05.07',
     validTo: '2029.05.06',
@@ -103,41 +104,12 @@ module.exports = {
     temperature: 0.7,
   },
 
-  // ── 텔레그램 알림 ────────────────────────────────────
-  telegram: {
-    botToken: process.env.TELEGRAM_BOT_TOKEN || '',
-    chatId: process.env.TELEGRAM_CHAT_ID || '',
-    // 대표님 핸드폰으로 알림 받을 채팅방 ID
-  },
+  // ── 원칙 ─────────────────────────────────────────────
+  // ✅ 홈페이지: 전화/문자 전용. 어떤 SNS와도 연결 없음. 절대 불변.
+  // ✅ SNS 계정: 제거됨. 명의는 김덕진.
+  // ✅ 모든 콘텐츠는 파일로 저장만 됨. 자동 게시 없음.
+  // ✅ 고객 노출 연락처: 김덕진 · 1555-2137 · 010-5927-9205
 
-  // ── SNS API 키 (환경변수로 관리) ─────────────────────
-  sns: {
-    instagram: {
-      accessToken: process.env.INSTAGRAM_ACCESS_TOKEN || '',
-      userId: process.env.INSTAGRAM_USER_ID || '',
-    },
-    facebook: {
-      accessToken: process.env.FACEBOOK_ACCESS_TOKEN || '',
-      pageId: process.env.FACEBOOK_PAGE_ID || '',
-    },
-    naver: {
-      clientId: process.env.NAVER_CLIENT_ID || '',
-      clientSecret: process.env.NAVER_CLIENT_SECRET || '',
-      blogId: process.env.NAVER_BLOG_ID || '',
-    },
-    kakao: {
-      accessToken: process.env.KAKAO_ACCESS_TOKEN || '',
-      channelId: process.env.KAKAO_CHANNEL_ID || '',
-    },
-  },
-
-  // ── 자동 업데이트 설정 ──────────────────────────────
-  autoUpdate: {
-    // 매주 월요일 오전 8시 AI 도구 업데이트 체크
-    checkSchedule: '0 8 * * 1',
-    // npm 패키지 자동 업데이트 여부
-    autoUpdatePackages: true,
-    // 법규 변경 감지용 RSS
-    lawChangeRss: 'https://www.fsc.go.kr/rss/rss_list.do',
-  },
+  // ── 콘텐츠 저장 경로 ─────────────────────────────────
+  outputDir: './generated',
 };

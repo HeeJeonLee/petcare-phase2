@@ -1,20 +1,10 @@
-# 새론금융 AI 에이전트 — 매일 자동 실행
-# 매일 오전 9시 (한국시간 KST = UTC+9, GitHub은 UTC 기준이므로 00:00 UTC = 09:00 KST)
-name: 새론금융_AI_자동_SNS_게시
+# ⛔ 비활성화됨 — SNS 계정 제거 결정 (2026-05-17)
+# 원칙: SNS 계정 연동 없음. 명의: 김덕진.
+# 필요시 workflow_dispatch 로만 수동 실행 가능.
+name: 새론금융_AI_콘텐츠_생성 (수동전용)
 
 on:
-  schedule:
-    - cron: '0 0 * * *'   # 매일 UTC 00:00 = KST 09:00
-  workflow_dispatch:       # 수동 실행 버튼도 제공
-    inputs:
-      mode:
-        description: '실행 모드'
-        required: false
-        default: 'normal'
-        type: choice
-        options:
-          - normal    # 정상 실행 (SNS 게시)
-          - test      # 테스트 (게시 없음)
+  workflow_dispatch:   # 수동 실행만 허용. 자동 스케줄 없음.
 
 jobs:
   ai-sns-agent:

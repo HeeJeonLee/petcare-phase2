@@ -1,0 +1,143 @@
+/**
+ * 새론금융대부중개 AI 자동화 에이전트 - 설정 파일
+ * =====================================================
+ * 이 파일에 모든 설정값이 있습니다.
+ * .env 파일에 실제 비밀번호/키를 저장하세요.
+ */
+
+require('dotenv').config();
+
+module.exports = {
+  // ── 회사 기본 정보 ──────────────────────────────────
+  company: {
+    name: '새론금융대부중개',
+    nameEng: 'Saeloan Financial',
+    registrationNo: '2026-수원-2324',
+    businessNo: '653-90-02268',
+    ceoName: '김덕진',
+    ceoBirthdate: '1967.02.07',
+    address: '경기도 수원시 팔달구 권광로 159, 1동 5층 502호(인계동, 수원프라자)',
+    phone: '1555-2137',
+    mobile: '010-5927-9205',
+    website: 'https://saeloan.co.kr',
+    validFrom: '2026.05.07',
+    validTo: '2029.05.06',
+    maxInterestRate: '연 20% 이내',
+    overdueRate: '연 20% 이내',
+    brokerageFee: '없음',
+  },
+
+  // ── 법정 필수 고지문구 (모든 게시물에 자동 삽입) ──────
+  legalDisclosure: `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[법정 필수 고지사항]
+상호: 새론금융대부중개 | 등록번호: 2026-수원-2324(대부중개업)
+대표자: 김덕진(1967.02.07) | 사업자번호: 653-90-02268
+주소: 경기도 수원시 팔달구 권광로 159, 1동 5층 502호(인계동, 수원프라자)
+등록유효기간: 2026.05.07~2029.05.06
+최고이자율: 연 20% 이내(법정최고금리) | 연체이자율: 연 20% 이내
+중개수수료: 없음 | 직접대출 없음(금융사 연결 중개만 합니다)
+⚠️ 대출은 신중하게! 과도한 빚은 고통의 시작입니다.
+⚠️ 대출 시 신용등급이 하락할 수 있습니다.
+상담전화: 1555-2137 | 휴대폰: 010-5927-9205
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+
+  // ── 금지어 목록 (이 단어들이 포함되면 게시 차단) ──────
+  forbiddenWords: [
+    '100% 승인', '100%승인', '무조건 승인', '무조건승인',
+    '확정 대출', '확정대출', '보장', '완전 무이자',
+    '초저금리 확정', '심사 불필요', '심사불필요',
+    '블랙리스트 OK', '신불자 OK', '연체자 무조건',
+    '주민등록번호', '계좌번호', '비밀번호',
+  ],
+
+  // ── SNS 콘텐츠 주제 풀 (AI가 여기서 선택) ──────────
+  contentTopics: [
+    // 금융 상식
+    { category: '금융상식', topic: '신용점수 올리는 5가지 방법', tags: ['신용점수', '대출', '금융상식'] },
+    { category: '금융상식', topic: 'DSR이란 무엇인가요? 쉬운 설명', tags: ['DSR', '대출한도', '금융용어'] },
+    { category: '금융상식', topic: '직장인 대출 조건 총정리', tags: ['직장인대출', '대출조건', '수원대출'] },
+    { category: '금융상식', topic: '대환대출이란? 이자 줄이는 방법', tags: ['대환대출', '이자절감', '금리'] },
+    { category: '금융상식', topic: '제2금융권 vs 대부업 차이', tags: ['제2금융권', '대부업', '금융비교'] },
+    
+    // 상담 안내
+    { category: '상담안내', topic: '새론금융 상담 신청 방법 안내', tags: ['상담신청', '새론금융', '대부중개'] },
+    { category: '상담안내', topic: '빠른 대출 상담 절차 안내', tags: ['빠른상담', '대출상담', '수원'] },
+    { category: '상담안내', topic: '대출 거절 후 해결 방법', tags: ['대출거절', '해결방법', '재신청'] },
+    
+    // 법규 안내
+    { category: '법규안내', topic: '합법적 대부중개업이란?', tags: ['합법', '대부중개', '법규'] },
+    { category: '법규안내', topic: '대부업 중개수수료 요구하면 불법!', tags: ['중개수수료', '불법', '주의'] },
+    { category: '법규안내', topic: '불법 사금융 피해 예방법', tags: ['불법사금융', '피해예방', '금융사기'] },
+    
+    // 지역 정보
+    { category: '지역정보', topic: '수원시 서민금융 지원 프로그램 안내', tags: ['수원', '서민금융', '지원'] },
+    { category: '지역정보', topic: '경기도 정책자금 신청 방법', tags: ['경기도', '정책자금', '소상공인'] },
+    { category: '지역정보', topic: '팔달구 금융상담 찾아오시는 길', tags: ['팔달구', '수원', '금융상담'] },
+    
+    // Q&A
+    { category: 'QA', topic: '자주 묻는 질문 TOP 10', tags: ['FAQ', '자주묻는질문', '대출상담'] },
+    { category: 'QA', topic: '직업 없어도 대출 가능한가요?', tags: ['무직자', '대출', '상담'] },
+    { category: 'QA', topic: '신용등급 낮아도 상담 가능한가요?', tags: ['저신용', '대출', '상담가능'] },
+  ],
+
+  // ── 운영 일정 ──────────────────────────────────────
+  schedule: {
+    // 매일 오전 9시 실행 (cron: '0 9 * * *')
+    dailyRunTime: '0 9 * * *',
+    // 네이버 블로그: 월, 금
+    naverBlogDays: [1, 5],  // 1=월, 5=금
+    // 인스타+페이스북: 화, 토
+    instagramDays: [2, 6],  // 2=화, 6=토
+    // 카카오 채널: 수, 일
+    kakaoDays: [3, 0],       // 3=수, 0=일
+    // 유튜브 쇼츠: 목
+    youtubeDays: [4],        // 4=목
+  },
+
+  // ── AI 모델 설정 ────────────────────────────────────
+  ai: {
+    provider: 'anthropic',
+    model: 'claude-opus-4-5',  // 최신 모델 자동 감지
+    fallbackModel: 'claude-sonnet-4-5',
+    maxTokens: 2000,
+    temperature: 0.7,
+  },
+
+  // ── 텔레그램 알림 ────────────────────────────────────
+  telegram: {
+    botToken: process.env.TELEGRAM_BOT_TOKEN || '',
+    chatId: process.env.TELEGRAM_CHAT_ID || '',
+    // 대표님 핸드폰으로 알림 받을 채팅방 ID
+  },
+
+  // ── SNS API 키 (환경변수로 관리) ─────────────────────
+  sns: {
+    instagram: {
+      accessToken: process.env.INSTAGRAM_ACCESS_TOKEN || '',
+      userId: process.env.INSTAGRAM_USER_ID || '',
+    },
+    facebook: {
+      accessToken: process.env.FACEBOOK_ACCESS_TOKEN || '',
+      pageId: process.env.FACEBOOK_PAGE_ID || '',
+    },
+    naver: {
+      clientId: process.env.NAVER_CLIENT_ID || '',
+      clientSecret: process.env.NAVER_CLIENT_SECRET || '',
+      blogId: process.env.NAVER_BLOG_ID || '',
+    },
+    kakao: {
+      accessToken: process.env.KAKAO_ACCESS_TOKEN || '',
+      channelId: process.env.KAKAO_CHANNEL_ID || '',
+    },
+  },
+
+  // ── 자동 업데이트 설정 ──────────────────────────────
+  autoUpdate: {
+    // 매주 월요일 오전 8시 AI 도구 업데이트 체크
+    checkSchedule: '0 8 * * 1',
+    // npm 패키지 자동 업데이트 여부
+    autoUpdatePackages: true,
+    // 법규 변경 감지용 RSS
+    lawChangeRss: 'https://www.fsc.go.kr/rss/rss_list.do',
+  },
+};

@@ -1,0 +1,54 @@
+# 새론금융 AI 도구 자동 업데이트 — 매주 월요일 실행
+name: AI_도구_자동_업데이트
+
+on:
+  schedule:
+    - cron: '0 23 * * 0'   # 매주 일요일 UTC 23:00 = 월요일 KST 08:00
+  workflow_dispatch:
+
+jobs:
+  auto-update:
+    name: AI 도구 자동 업데이트
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Node.js 설치
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # npm 패키지 자동 업데이트
+      - name: npm 패키지 업데이트
+        working-directory: ./ai-agent
+        run: |
+          npm install -g npm-check-updates
+          ncu -u --target minor   # minor 버전만 자동 업데이트 (안전)
+          npm install
+
+      # 업데이트 후 테스트
+      - name: 업데이트 후 테스트
+        working-directory: ./ai-agent
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: node master-agent.js --test
+
+      # 변경사항이 있으면 자동 커밋
+      - name: 변경사항 커밋
+        run: |
+          git config --global user.name "새론금융 AI 봇"
+          git config --global user.email "bot@saeloan.co.kr"
+          git add ai-agent/package.json ai-agent/package-lock.json || true
+          git diff --staged --quiet || git commit -m "🤖 AI 도구 자동 업데이트 $(date '+%Y-%m-%d')"
+          git push || true
+
+      # 업데이트 완료 텔레그램 알림
+      - name: 업데이트 완료 알림
+        run: |
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -H "Content-Type: application/json" \
+            -d "{\"chat_id\":\"${{ secrets.TELEGRAM_CHAT_ID }}\",\"text\":\"🔄 새론금융 AI 도구가 최신 버전으로 업데이트되었습니다! ($(date '+%Y-%m-%d'))\"}"

@@ -1,14 +1,25 @@
-# ⛔ 비활성화됨 — SNS 계정 제거 결정 (2026-05-17)
-# 원칙: SNS 계정 연동 없음. 명의: 김덕진.
-# 필요시 workflow_dispatch 로만 수동 실행 가능.
-name: 새론금융_AI_콘텐츠_생성 (수동전용)
+# 새론금융대부중개 — AI 자동화 에이전트
+# =====================================================
+# 매일 오전 9시 (평일) 자동 실행
+# Claude AI로 Instagram 콘텐츠 생성 → 자동 게시
+# 완료 시 Telegram 알림 → 이희전 폰으로 수신
+#
+# 토큰 미설정 시: 파일 저장만 됨 (오류 없이 실행)
+# 토큰 설정 완료 시: Instagram 자동 게시 시작
+# =====================================================
+
+name: 새론금융_AI_자동화_에이전트
 
 on:
-  workflow_dispatch:   # 수동 실행만 허용. 자동 스케줄 없음.
+  schedule:
+    # 평일 오전 9시 KST (= UTC 00:00)
+    - cron: "0 0 * * 1-5"
+  workflow_dispatch:
+    # 수동 실행 (GitHub Actions 탭에서 "Run workflow" 클릭)
 
 jobs:
-  ai-sns-agent:
-    name: AI SNS 자동 게시
+  run-agent:
+    name: AI 콘텐츠 생성 & Instagram 게시
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -17,55 +28,42 @@ jobs:
       - name: 코드 체크아웃
         uses: actions/checkout@v4
 
-      # 2. Node.js 설치
+      # 2. Node.js 20 설치
       - name: Node.js 설치
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: 'ai-agent/package.json'
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: "ai-agent/package.json"
 
-      # 3. 의존성 설치
+      # 3. 패키지 설치
       - name: 패키지 설치
         working-directory: ./ai-agent
-        run: npm ci --production
+        run: npm install
 
-      # 4. AI 에이전트 실행
+      # 4. AI SDK 자동 업데이트 (항상 최신 Claude 버전 사용)
+      - name: Anthropic SDK 최신화
+        working-directory: ./ai-agent
+        run: npm update @anthropic-ai/sdk
+
+      # 5. AI 에이전트 실행
       - name: AI 에이전트 실행
         working-directory: ./ai-agent
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_USER_ID }}
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
-          INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_USER_ID }}
-          FACEBOOK_ACCESS_TOKEN: ${{ secrets.FACEBOOK_ACCESS_TOKEN }}
-          FACEBOOK_PAGE_ID: ${{ secrets.FACEBOOK_PAGE_ID }}
-          NAVER_CLIENT_ID: ${{ secrets.NAVER_CLIENT_ID }}
-          NAVER_CLIENT_SECRET: ${{ secrets.NAVER_CLIENT_SECRET }}
-          NAVER_BLOG_ID: ${{ secrets.NAVER_BLOG_ID }}
-          KAKAO_ACCESS_TOKEN: ${{ secrets.KAKAO_ACCESS_TOKEN }}
-          KAKAO_CHANNEL_ID: ${{ secrets.KAKAO_CHANNEL_ID }}
-        run: |
-          if [ "${{ github.event.inputs.mode }}" = "test" ]; then
-            node master-agent.js --test
-          else
-            node master-agent.js
-          fi
+          OG_IMAGE_BASE_URL: ${{ secrets.OG_IMAGE_BASE_URL }}
+        run: node master-agent.js
 
-      # 5. 생성된 콘텐츠 로그 저장
-      - name: 로그 저장
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: sns-logs-${{ github.run_number }}
-          path: ai-agent/logs/
-          retention-days: 30
-
-      # 6. 실패 시 텔레그램 알림
-      - name: 실패 알림
-        if: failure()
+      # 6. 생성된 파일 GitHub에 자동 저장 (백업)
+      - name: 생성 파일 커밋 & 저장
+        working-directory: ./ai-agent
         run: |
-          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
-            -H "Content-Type: application/json" \
-            -d '{"chat_id":"${{ secrets.TELEGRAM_CHAT_ID }}","text":"🚨 새론금융 AI 에이전트 실행 실패!\nGitHub Actions에서 확인해주세요.\nhttps://github.com/HeeJeonLee/saeloan-financial/actions"}'
+          git config user.name "saeloan-ai-agent"
+          git config user.email "ai@saeloan.co.kr"
+          git add generated/ logs/ 2>/dev/null || true
+          git diff --staged --quiet || git commit -m "auto: $(date '+%Y-%m-%d') AI 콘텐츠 생성"
+          git push 2>/dev/null || true

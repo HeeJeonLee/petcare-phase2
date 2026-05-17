@@ -1,192 +1,129 @@
 /**
- * 새론금융대부중개 — AI 콘텐츠 생성기
+ * 새론금융대부중개 — 마스터 AI 에이전트 (완전 자동화)
  * =====================================================
- * 원칙:
- *   - 홈페이지: 전화/문자 전용. SNS 연결 절대 없음.
- *   - SNS 계정: 모두 제거됨. 명의는 김덕진.
- *   - 이 에이전트는 콘텐츠를 파일로만 저장합니다.
- *     자동 게시 없음. 수동으로 복사해서 사용하세요.
- *
  * 실행 방법: node master-agent.js
- * 생성 결과: ./generated/ 폴더에 저장
+ *
+ * 자동 실행 흐름:
+ *   1. 오늘의 주제 자동 선택 (요일별 카테고리 순환)
+ *   2. Claude AI (최신 모델)로 콘텐츠 생성
+ *   3. 대부업법 자동 검증 (금지어, 필수고지문 확인)
+ *   4. Instagram 자동 게시 (토큰 설정 시)
+ *   5. Telegram 완료 알림 (토큰 설정 시)
+ *   6. 로컬 파일 백업 (항상)
+ *
+ * 원칙:
+ *   - 홈페이지 ≠ SNS (완전 분리, 절대 불변)
+ *   - 대표: 김덕진 · 1555-2137 · 010-5927-9205
+ *   - 계정 운영: 이희전 (고객 노출 명의: 김덕진)
  */
 
+'use strict';
 require('dotenv').config();
 
-const config = require('./config');
+const config           = require('./config');
 const ContentGenerator = require('./content-generator');
-const LegalChecker = require('./legal-checker');
-const FileWriter = require('./sns-publisher');  // 파일 저장 전용
+const LegalChecker     = require('./legal-checker');
+const SNSPublisher     = require('./sns-publisher');
 
 class MasterAgent {
   constructor() {
     this.generator = new ContentGenerator();
-    this.checker = new LegalChecker();
-    this.writer = new FileWriter();  // 파일 저장 전용 (SNS 게시 없음)
-    this.results = [];
-    this.errors = [];
+    this.checker   = new LegalChecker();
+    this.publisher = new SNSPublisher();
+    this.results   = [];
+    this.errors    = [];
   }
 
-  /**
-   * 메인 실행 함수 — 콘텐츠 생성 후 파일 저장
-   * SNS 자동 게시 없음. 명의: 김덕진 · 1555-2137
-   */
   async run() {
-    const startTime = Date.now();
-    const today = new Date();
-    const dayOfWeek = today.getDay();
-    const dateStr = today.toISOString().substring(0, 10);
-    
-    console.log(`\n${'='.repeat(50)}`);
-    console.log(`📝 새론금융 콘텐츠 생성 시작 (대표: 김덕진)`);
-    console.log(`📅 ${today.toLocaleString('ko-KR')}`);
-    console.log(`⚠️  SNS 자동 게시 없음 — 파일 저장 후 수동 사용`);
-    console.log(`${'='.repeat(50)}\n`);
+    const start   = Date.now();
+    const now     = new Date();
+    const dateStr = now.toISOString().slice(0, 10);
+
+    this._banner(now);
 
     // 오늘의 주제 선택
-    const topic = this.generator.selectTodayTopic(dayOfWeek);
-    console.log(`📌 오늘의 주제: ${topic.topic} (${topic.category})`);
+    const topic = this.generator.selectTodayTopic(now.getDay());
+    console.log(`\n📌 오늘의 주제: [${topic.category}] ${topic.topic}`);
+    console.log(`🏷️  해시태그: ${topic.tags.map(t => '#' + t).join(' ')}\n`);
 
-    // 모든 포맷 콘텐츠 생성 후 파일 저장
-    const tasks = [
-      this._runTask('블로그 포스트', () => this._saveNaverContent(topic, dateStr)),
-      this._runTask('소셜 카드뉴스', () => this._saveSocialContent(topic, dateStr)),
-      this._runTask('카카오 메시지', () => this._saveKakaoContent(topic, dateStr)),
-      this._runTask('유튜브 스크립트', () => this._saveYoutubeContent(topic, dateStr)),
-    ];
+    // Instagram 콘텐츠 생성 & 게시
+    await this._runStep('📸 Instagram 캡션 생성', async () => {
+      const data = await this.generator.generateSocialPost(topic, 'instagram');
 
-    for (const task of tasks) {
-      await task();
+      // 법규 검증
+      const check = this.checker.check(data.content);
+      if (!check.pass) {
+        throw new Error(`법규 검증 실패: ${check.forbidden.join(', ') || check.missing.join(', ')}`);
+      }
+      console.log('  ✅ 법규 검증 통과');
+
+      // 파일 백업 (항상)
+      const file = this.publisher.saveToFile('instagram', dateStr, data.content);
+
+      // Instagram 게시 (토큰 있을 때만)
+      const igResult = await this.publisher.postInstagram(data.content, topic.category);
+
+      return { platform: 'instagram', topic: topic.topic, file, igResult };
+    });
+
+    // 완료 Telegram 알림
+    const elapsed  = ((Date.now() - start) / 1000).toFixed(1);
+    const igPosted = this.results.some(r => r.igResult ; r.igResult.success);
+
+    await this.publisher.notifyTelegram(
+      `<b>✅ 새론금융 AI 에이전트 완료</b>\n` +
+      `📅 ${now.toLocaleDateString('ko-KR')}\n` +
+      `📌 주제: ${topic.topic}\n` +
+      `📸 Instagram: ${igPosted ? '게시 완료 ✅' : '파일 저장 (토큰 미설정)'}\n` +
+      `⏱️ 소요: ${elapsed}초`
+    );
+
+    // 로그 저장
+    this.publisher.saveToLog(this.results);
+
+    // 최종 보고
+    console.log('\n' + '═'.repeat(54));
+    console.log(`✅ 완료! (${elapsed}초 소요)`);
+    console.log(`📁 백업: ./generated/instagram/`);
+    if (!igPosted) {
+      console.log('\n💡 Instagram 자동게시 활성화 방법:');
+      console.log('   .env 파일에 다음 3가지를 설정하세요:');
+      console.log('   INSTAGRAM_USER_ID, INSTAGRAM_ACCESS_TOKEN, OG_IMAGE_BASE_URL');
     }
+    console.log('═'.repeat(54) + '\n');
 
-    // 결과 저장
-    const logFile = this.writer.saveToLog(this.results);
-    
-    // 완료 보고서 출력
-    const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-    this._printReport(elapsed, logFile);
-
-    console.log(`\n✅ 콘텐츠 생성 완료! (${elapsed}초 소요)`);
-    console.log(`📁 생성 파일: ${config.outputDir || './generated'}/`);
-    console.log(`\n👉 위 폴더에서 내용 복사 → SNS에 수동 게시하세요`);
     return { success: this.errors.length === 0, results: this.results, errors: this.errors };
   }
 
-  // ─── 개별 작업 실행 래퍼 ─────────────────────────
-  _runTask(name, fn) {
-    return async () => {
-      console.log(`\n📝 ${name} 생성 중...`);
-      try {
-        const result = await fn();
-        if (result) {
-          this.results.push({ name, ...result });
-          console.log(`✅ ${name} 저장 완료: ${result.file || ''}`);
-        }
-      } catch (err) {
-        this.errors.push({ name, error: err.message });
-        console.error(`❌ ${name} 실패: ${err.message}`);
-      }
-    };
+  async _runStep(name, fn) {
+    console.log(`\n${name}...`);
+    try {
+      const result = await fn();
+      this.results.push({ name, ...result });
+    } catch (err) {
+      console.error(`  ❌ 실패: ${err.message}`);
+      this.errors.push({ name, error: err.message });
+      this.results.push({ name, error: err.message });
+    }
   }
 
-  // ─── 네이버 블로그 콘텐츠 저장 ──────────────────────
-  async _saveNaverContent(topic, dateStr) {
-    const post = await this.generator.generateNaverBlog(topic);
-    const file = this.writer.saveToFile('naver', dateStr, `제목: ${post.title}\n\n${post.content}`);
-    return { type: 'naver', file, legal: post.legalCheck.pass };
-  }
-
-  // ─── 소셜(인스타/페이스북) 콘텐츠 저장 ──────────────
-  async _saveSocialContent(topic, dateStr) {
-    const post = await this.generator.generateSocialPost(topic, 'instagram');
-    const file = this.writer.saveToFile('social', dateStr, post.content);
-    return { type: 'social', file, legal: post.legalCheck.pass };
-  }
-
-  // ─── 카카오 메시지 저장 ───────────────────────────────
-  async _saveKakaoContent(topic, dateStr) {
-    const msg = await this.generator.generateKakaoMessage(topic);
-    const file = this.writer.saveToFile('kakao', dateStr, msg.content);
-    return { type: 'kakao', file, legal: msg.legalCheck.pass };
-  }
-
-  // ─── 유튜브 스크립트 저장 ─────────────────────────────
-  async _saveYoutubeContent(topic, dateStr) {
-    const script = await this.generator.generateYoutubeScript(topic);
-    const file = this.writer.saveToFile('youtube', dateStr,
-      `주제: ${topic.topic}\n\n${script.script}\n\n---설명---\n${script.description}`);
-    return { type: 'youtube', file, legal: script.legalCheck.pass };
-  }
-
-  // ─── 완료 보고서 출력 ─────────────────────────────────
-  _printReport(elapsed, logFile) {
-    const ok = this.results.filter(r => r.success !== false).length;
-    const fail = this.errors.length;
-    console.log(`\n${'─'.repeat(50)}`);
-    console.log(`📊 완료 보고 (${elapsed}초)  성공 ${ok}건 / 실패 ${fail}건`);
-    this.results.forEach(r => console.log(`  ✅ ${r.name}: ${r.file || '저장'}`))
-    this.errors.forEach(e  => console.log(`  ❌ ${e.name}: ${e.error}`));
-    console.log(`📁 로그: ${logFile}`);
-    console.log(`─`.repeat(50));
-    console.log(`\n대표: 김덕진 · 1555-2137 · 010-5927-9205`);
-    console.log(`(홈페이지 연결 없음 · SNS 자동 게시 없음)`);
-  }
-
-  /**
-   * 비상 중단 — 텔레그램에서 "중단" 메시지 받으면 실행
-   */
-  async emergencyStop() {
-    console.log('🛑 비상 중단 실행!');
-    await this.publisher.sendTelegram('🛑 AI 에이전트 긴급 중단됨');
-    process.exit(0);
+  _banner(now) {
+    console.log('\n' + '═'.repeat(54));
+    console.log('🤖 새론금융대부중개 AI 자동화 에이전트');
+    console.log(`📅 ${now.toLocaleString('ko-KR')}`);
+    console.log(`🧠 AI 모델: ${config.ai.model}`);
+    console.log(`📌 대표: 김덕진 · 1555-2137 · 010-5927-9205`);
+    console.log(`🔒 홈페이지 ≠ SNS (완전 분리, 절대 불변)`);
+    console.log('═'.repeat(54));
   }
 }
 
-// ── 직접 실행 ───────────────────────────────────────
+// 직접 실행
 if (require.main === module) {
-  const agent = new MasterAgent();
-  
-  // 실행 모드 확인
-  const args = process.argv.slice(2);
-  
-  if (args.includes('--test')) {
-    // 테스트 모드: SNS 게시 없이 콘텐츠만 생성
-    console.log('🧪 테스트 모드 (실제 게시 없음)');
-    const topic = agent.generator.selectTodayTopic(new Date().getDay());
-    console.log('오늘의 주제:', topic.topic);
-    console.log('법규 검사기 상태:', agent.checker.selfTest() ? '정상' : '오류');
-    console.log('\n✅ 테스트 완료 — 실제 실행: node master-agent.js');
-  } else if (args.includes('--stop')) {
-    agent.emergencyStop();
-  } else {
-    // 정상 실행
-    agent.run()
-      .then(result => {
-        if (result.success) {
-          console.log('\n🎉 모든 작업 성공!');
-        } else {
-          console.log(`\n⚠️ ${result.errors.length}건 실패`);
-        }
-        process.exit(0);
-      })
-      .catch(err => {
-        console.error('\n💥 치명적 오류:', err);
-        process.exit(1);
-      });
-  }
-}
-
-// ── 직접 실행 ───────────────────────────────────────
-if (require.main === module) {
-  const agent = new MasterAgent();
-  agent.run()
-    .then(result => {
-      process.exit(result.success ? 0 : 1);
-    })
-    .catch(err => {
-      console.error('\n💥 오류:', err.message);
-      process.exit(1);
-    });
+  new MasterAgent()
+    .run()
+    .then(r => process.exit(r.success ? 0 : 1))
+    .catch(err => { console.error(err); process.exit(1); });
 }
 
 module.exports = MasterAgent;

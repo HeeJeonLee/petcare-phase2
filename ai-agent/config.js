@@ -98,16 +98,28 @@ module.exports = {
   // ── AI 모델 설정 ────────────────────────────────────
   ai: {
     provider: 'anthropic',
-    model: 'claude-opus-4-5',  // 최신 모델 자동 감지
-    fallbackModel: 'claude-sonnet-4-5',
-    maxTokens: 2000,
+    model: 'claude-3-5-sonnet-latest',  // 항상 최신 안정 버전 자동 사용
+    fallbackModel: 'claude-3-haiku-20240307',
+    maxTokens: 1800,   // Instagram 2200자 제한 내 (법정고지 포함)
     temperature: 0.7,
+  },
+
+  // ── SNS 설정 ────────────────────────────────────────
+  // 계정 운영: 이희전 / 고객 노출 명의: 김덕진
+  // 홈페이지와 SNS는 완전 분리 (절대 불변 원칙)
+  sns: {
+    instagram: {
+      enabled: true,   // INSTAGRAM_ACCESS_TOKEN 설정 시 자동 활성화
+      postDays: [1, 2, 3, 4, 5],  // 평일 매일 게시
+    },
+    telegram: {
+      enabled: true,   // TELEGRAM_BOT_TOKEN 설정 시 자동 알림
+    },
   },
 
   // ── 원칙 ─────────────────────────────────────────────
   // ✅ 홈페이지: 전화/문자 전용. 어떤 SNS와도 연결 없음. 절대 불변.
-  // ✅ SNS 계정: 제거됨. 명의는 김덕진.
-  // ✅ 모든 콘텐츠는 파일로 저장만 됨. 자동 게시 없음.
+  // ✅ SNS 계정: 이희전 운영 / 고객 노출 명의: 김덕진
   // ✅ 고객 노출 연락처: 김덕진 · 1555-2137 · 010-5927-9205
 
   // ── 콘텐츠 저장 경로 ─────────────────────────────────

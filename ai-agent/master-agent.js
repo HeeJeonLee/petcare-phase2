@@ -44,7 +44,7 @@ class MasterAgent {
     // 오늘의 주제 선택
     const topic = this.generator.selectTodayTopic(now.getDay());
     console.log(`\n📌 오늘의 주제: [${topic.category}] ${topic.topic}`);
-    console.log(`🏷️  해시태그: ${topic.tags.map(t => '#' + t).join(' ')}\n`);
+    console.log(`🏷️  해시태그: ${(topic.hashtags || topic.tags || []).map(t => '#' + t).join(' ')}\n`);
 
     // Instagram 콘텐츠 생성 & 게시
     await this._runStep('📸 Instagram 캡션 생성', async () => {

@@ -17,14 +17,21 @@ class ContentGenerator {
 
   /**
    * 오늘의 주제 자동 선택
-   * 요일별, 카테고리 순환으로 선택
+   * 효과 순위(rank) 가중치 적용: 1순위 주제가 더 자주 선택됨
    */
   selectTodayTopic(dayOfWeek) {
     const topics = config.contentTopics;
-    const dayIndex = dayOfWeek || new Date().getDay();
-    // 요일 기반 순환 선택 (주제 풀을 골고루 사용)
-    const topicIndex = (dayIndex + Math.floor(Date.now() / 86400000)) % topics.length;
-    return topics[topicIndex];
+    const dayIndex = dayOfWeek !== undefined ? dayOfWeek : new Date().getDay();
+
+    // rank 1 주제는 3배, rank 2는 2배 가중치로 확률 높임
+    const weighted = [];
+    topics.forEach(t => {
+      const weight = t.rank === 1 ? 3 : t.rank === 2 ? 2 : 1;
+      for (let i = 0; i < weight; i++) weighted.push(t);
+    });
+
+    const topicIndex = (dayIndex + Math.floor(Date.now() / 86400000)) % weighted.length;
+    return weighted[topicIndex];
   }
 
   /**
@@ -88,32 +95,41 @@ class ContentGenerator {
   }
 
   /**
-   * 인스타그램/페이스북 캡션 생성
+   * 인스타그램 캡션 생성
+   * ─────────────────────────────────────────────────
+   * 브랜드 분리 원칙:
+   *   ❌ #새론금융 등 브랜드 해시태그 절대 사용 금지
+   *   ✅ #아파트담보대출 #수원아파트 등 상품 키워드만 사용
+   *   → "새론금융" 검색 시 이 계정이 나오면 안 됨
+   *   → "아파트담보대출 수원" 검색 시에만 노출되도록
    */
   async generateSocialPost(topic, platform = 'instagram') {
-    const maxLen = platform === 'instagram' ? 300 : 400;
-    
-    const prompt = `당신은 새론금융대부중개의 ${platform === 'instagram' ? '인스타그램' : '페이스북'} 담당 AI입니다.
+    // 주제의 해시태그 (config에서 브랜드명 없는 것만)
+    const topicHashtags = (topic.hashtags || topic.tags || []);
+    const hashtagStr = topicHashtags.map(t => '#' + t).join(' ');
 
-아래 주제로 SNS 게시물 캡션을 작성하세요.
+    const prompt = `당신은 아파트 담보대출 전문 금융 정보 계정의 인스타그램 에디터입니다.
 
+[오늘의 주제]
 주제: ${topic.topic}
-해시태그: ${topic.tags.map(t => '#' + t).join(' ')} #새론금융 #수원대출 #대부중개
+핵심 각도: ${topic.angle || '정보 제공 + 실용적 조언'}
 
-필수 조건:
-1. ${maxLen}자 이내 (짧고 임팩트 있게)
-2. 이모지 적절히 사용 (읽기 쉽게)
-3. 금지 표현 절대 사용 금지 (보장, 100%승인, 무조건 등)
-4. 상담 전화: 1555-2137
-5. 카카오 채널: 새론금융 (채널 개설 후 링크 추가 예정)
-6. 정보 제공 + 상담 유도 목적
+[작성 지침]
+1. 250자 이내 (법정 고지문은 시스템이 자동 추가)
+2. 첫 줄: 스크롤을 멈추게 할 질문 또는 공감 문구 (예: "아파트 있는데 은행에서 거절 받으셨나요?")
+3. 핵심 정보 3줄 이내 (숫자, 조건, 절차 등 구체적으로)
+4. 마지막 줄: 무료 상담 유도 — 전화: 1555-2137
+5. 이모지 3~5개 사용 (읽기 편하게)
 
-형식:
-첫 줄: 강력한 후킹 문구 (읽고 싶게 만드는)
-본문: 핵심 정보
-마지막: 상담 안내
+[절대 금지]
+- "보장", "100% 승인", "무조건", "확정" 등 승인 확약 표현
+- 개인정보(주민등록번호, 계좌번호) 관련 내용
+- 회사 브랜드명을 해시태그로 사용 (브랜드 검색과 분리해야 함)
 
-주의: 법정 고지 문구는 시스템이 자동 추가합니다.`;
+[해시태그 — 반드시 아래 것만 사용, 추가 불가]
+${hashtagStr}
+
+법정 고지문은 시스템이 자동 추가하므로 직접 쓰지 마세요.`;
 
     try {
       const response = await this.client.messages.create({
@@ -124,11 +140,11 @@ class ContentGenerator {
 
       const content = response.content[0].text;
       const finalContent = this.checker.addLegalDisclosure(content);
-      
+
       return {
         platform,
         content: finalContent,
-        hashtags: [...topic.tags, '새론금융', '수원대출', '대부중개', '합법대출'],
+        hashtags: topicHashtags,   // 브랜드명 없음
         legalCheck: this.checker.check(finalContent),
         generatedAt: new Date().toISOString(),
       };

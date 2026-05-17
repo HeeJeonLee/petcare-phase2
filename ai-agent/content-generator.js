@@ -46,38 +46,109 @@ class ContentGenerator {
   async generateNaverBlogHtml(topic) {
     const topicTags = (topic.hashtags || topic.tags || []);
 
-    const prompt = `당신은 아파트 담보대출 정보 블로그의 SEO 전문 작성자입니다.
+    // 매일 다른 글쓰기 스타일로 변주 (반복 패턴 방지)
+    const today        = new Date();
+    const styleIndex   = today.getDate() % 4;   // 0~3 순환
+    const writerVoice  = [
+      '금융 업계에서 10년 넘게 일한 실무자처럼 경험 기반으로 솔직하게',
+      '같은 고민을 해봤던 사람이 이웃에게 말하듯 친근하고 담백하게',
+      '실제 사례를 겪은 당사자 입장에서 공감하며 단계별로 설명하듯',
+      '독자가 이미 알고 있을 내용과 모르는 내용을 구분해 차근차근',
+    ][styleIndex];
+    const openingStyle = [
+      '뜬금없는 얘기 같지만, 이 이야기 들어보시면 고개를 끄덕이게 됩니다.',
+      '생각보다 많은 분들이 똑같은 상황에서 당황하시더라고요.',
+      '지난달에 비슷한 문의를 꽤 많이 받았는데, 정리해서 써봤습니다.',
+      '처음엔 저도 이게 이렇게 복잡한 줄 몰랐습니다.',
+    ][styleIndex];
 
-[타겟]
-네이버에서 "${topic.topic}" 관련 키워드를 검색하는 아파트 소유자.
-특히: 개인사업자, 은행 거절 경험자, 역전세 임대인, 갭투자자, DSR 초과자.
+    const prompt = `당신은 아파트 금융 분야에서 실무 경험을 쌓은 블로거입니다.
+아래 주제로 네이버 블로그 포스팅을 작성하세요.
 
-[오늘의 주제]
-주제: ${topic.topic}
-핵심 각도: ${topic.angle || '정보 제공 + 실용적 조언'}
+오늘의 주제: ${topic.topic}
+핵심 방향: ${topic.angle || '실용적 정보 제공'}
+글쓰기 톤: ${writerVoice}
+첫 문장 힌트: "${openingStyle}" 같은 느낌으로 자연스럽게 시작
 
-[작성 지침]
-1. 제목: 핵심 키워드 포함, 검색 의도 반영 (예: "아파트담보대출 은행거절 후 해결방법")
-2. 본문: 600~900자 (네이버 블로그 SEO 최적 길이)
-3. H2 소제목 2~3개로 구조화 (가독성 + SEO)
-4. 구체적 사례 또는 시나리오 포함 (추상적 표현 금지)
-5. 전문 용어는 쉬운 설명 병기 (예: "DSR(총부채원리금상환비율)")
-6. 마지막 문단: "아파트 담보대출 무료 상담: ☎ 1555-2137" 포함
-7. 법정 고지문은 시스템 자동 추가 — 직접 작성 금지
+━━━ 반드시 지켜야 할 것 ━━━
 
-[절대 금지 표현]
-"보장", "100% 승인", "무조건 가능", "확정", "반드시 됩니다"
+[글쓰기 원칙 — 사람이 쓴 글처럼]
+1. 문장 길이를 의도적으로 섞어라.
+   짧은 문장. 그 다음엔 좀 더 길게 풀어서 설명하는 문장도 함께 쓴다.
+   완벽하게 대칭되는 나열은 피해라.
+2. 소제목을 딱딱한 명사형으로만 쓰지 마라.
+   예: "은행 거절 이유" 대신 "은행에서 왜 거절했을까?" 같은 질문형도 OK.
+3. 중간에 독자에게 말 거는 느낌을 1번 이상 넣어라.
+   예: "혹시 이런 경우 해당되시지 않나요?", "이 부분이 핵심입니다."
+4. 숫자나 구체적 사례를 최소 1번 이상 포함해라.
+   (예: "DSR 40% 초과", "시세 9억 아파트 기준", "3~5영업일 내")
+5. 리스트(번호/글머리)를 쓸 경우 항목 수를 3~5개로 다양하게.
+   모든 항목 길이가 똑같으면 안 된다.
+6. 분량: 본문 650~850자 (너무 짧거나 너무 길면 안 됨)
+7. 마무리는 부드러운 안내로: "궁금하신 점은 편하게 전화 주세요. ☎ 1555-2137"
 
-[출력 형식 — 반드시 이 형식 그대로]
+[절대 금지]
+"보장", "100% 승인", "무조건", "확정", "반드시 됩니다" — 이런 표현 절대 금지.
+법정 고지문 직접 작성 금지 (시스템이 자동 추가함).
+AI가 쓴 글처럼 느껴지는 과도한 대칭 구조, 기계적 나열 금지.
+
+[출력 형식 — 정확히 이 형식]
 ===TITLE===
-(블로그 제목 — 60자 이내)
+(제목: 50자 이내, 핵심 키워드 자연스럽게 포함)
 
 ===CONTENT===
-<h2>(소제목 1)</h2>
-<p>(본문 문단)</p>
+<p>(첫 문단 — 공감 또는 상황 묘사로 시작)</p>
+
+<h2>(소제목 1 — 질문형 또는 상황 묘사형)</h2>
+<p>(본문)</p>
 
 <h2>(소제목 2)</h2>
-<p>(본문 문단)</p>
+<p>(본문)</p>
+
+<h2>(소제목 3 — 선택, 필요 시 추가)</h2>
+<p>(본문)</p>
+
+<p>(마무리 안내: 궁금하신 점은 편하게 전화 주세요. ☎ 1555-2137)</p>`;
+
+    try {
+      const response = await this.client.messages.create({
+        model: config.ai.model,
+        max_tokens: config.ai.maxTokens,
+        messages: [{ role: 'user', content: prompt }],
+      });
+
+      const raw = response.content[0].text;
+
+      // 제목 파싱
+      const titleMatch = raw.match(/===TITLE===\s*\n(.+)/);
+      const title = titleMatch ? titleMatch[1].trim() : topic.topic;
+
+      // HTML 본문 파싱
+      const contentMatch = raw.match(/===CONTENT===\s*\n([\s\S]+)/);
+      const htmlBody = contentMatch ? contentMatch[1].trim() : `<p>${raw}</p>`;
+
+      // 법정 고지문 HTML로 추가
+      const legalHtml = `<hr><p style="font-size:11px; color:#666; line-height:1.8;">
+${config.legalDisclosure.replace(/\n/g, '<br>')}</p>`;
+      const finalHtml = htmlBody + '\n' + legalHtml;
+
+      // 텍스트 버전 (법규 검사용)
+      const textContent = finalHtml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+
+      return {
+        platform: 'naver_blog',
+        title,
+        htmlContent: finalHtml,
+        textContent,
+        tags: topicTags,
+        legalCheck: this.checker.check(textContent),
+        generatedAt: new Date().toISOString(),
+      };
+    } catch (err) {
+      console.error('네이버 블로그 생성 오류:', err.message);
+      throw err;
+    }
+  }
 
 <h2>(소제목 3 — 선택)</h2>
 <p>(본문 문단)</p>

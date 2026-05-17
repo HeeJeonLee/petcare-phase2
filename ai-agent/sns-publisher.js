@@ -19,6 +19,7 @@ const path = require('path');
 const fetch = require('node-fetch');
 
 const IG_API    = 'https://graph.facebook.com/v21.0';
+const TH_API    = 'https://graph.threads.net/v1.0';
 const IG_DELAY  = 10000; // Instagram 이미지 처리 대기 (10초)
 
 class SNSPublisher {
@@ -28,6 +29,9 @@ class SNSPublisher {
     this.tgToken   = process.env.TELEGRAM_BOT_TOKEN;
     this.tgChatId  = process.env.TELEGRAM_CHAT_ID;
     this.ogBase    = (process.env.OG_IMAGE_BASE_URL || '').replace(/\/$/, '');
+    // Threads: 별도 토큰 없으면 Instagram 토큰 재사용
+    this.thToken   = process.env.THREADS_ACCESS_TOKEN || process.env.INSTAGRAM_ACCESS_TOKEN;
+    this.thUserId  = process.env.INSTAGRAM_USER_ID;  // Threads user ID = Instagram user ID
   }
 
   // ─── Instagram 자동 게시 ──────────────────────────
@@ -86,6 +90,55 @@ class SNSPublisher {
     } else {
       console.error('  ❌ 게시 실패:', JSON.stringify(publish));
       return { success: false, error: publish };
+    }
+  }
+
+  // ─── Threads 자동 크로스포스팅 ───────────────────────
+
+  async postThreads(text) {
+    if (!this.thUserId || !this.thToken) {
+      console.log('  ⏭️  Threads 토큰 미설정 → 건너뜀');
+      return { skipped: true, reason: 'no_credentials' };
+    }
+
+    try {
+      // 1단계: 텍스트 컨테이너 생성
+      const containerRes = await fetch(`${TH_API}/${this.thUserId}/threads`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          media_type:   'TEXT',
+          text:         text,
+          access_token: this.thToken,
+        }),
+      });
+      const container = await containerRes.json();
+      if (!container.id) {
+        console.error('  ❌ Threads 컨테이너 생성 실패:', JSON.stringify(container));
+        return { success: false, error: container };
+      }
+
+      // 2단계: 게시 (publish)
+      await new Promise(r => setTimeout(r, 3000)); // 3초 대기
+      const publishRes = await fetch(`${TH_API}/${this.thUserId}/threads_publish`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          creation_id:  container.id,
+          access_token: this.thToken,
+        }),
+      });
+      const publish = await publishRes.json();
+      if (publish.id) {
+        console.log(`  ✅ Threads 게시 완료! Post ID: ${publish.id}`);
+        return { success: true, postId: publish.id };
+      } else {
+        console.error('  ❌ Threads 게시 실패:', JSON.stringify(publish));
+        return { success: false, error: publish };
+      }
+    } catch (err) {
+      console.error('  ❌ Threads 오류:', err.message);
+      return { success: false, error: err.message };
     }
   }
 

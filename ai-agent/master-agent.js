@@ -24,14 +24,14 @@ const config           = require('./config');
 const ContentGenerator = require('./content-generator');
 const LegalChecker     = require('./legal-checker');
 const SNSPublisher     = require('./sns-publisher');
-const NaverBlog        = require('./naver-blog');
+const YouTubeAuto      = require('./youtube-auto');
 
 class MasterAgent {
   constructor() {
     this.generator = new ContentGenerator();
     this.checker   = new LegalChecker();
     this.publisher = new SNSPublisher();
-    this.naver     = new NaverBlog();
+    this.youtube   = new YouTubeAuto();
     this.results   = [];
     this.errors    = [];
   }
@@ -65,66 +65,14 @@ class MasterAgent {
       // Instagram 게시 (토큰 있을 때만)
       const igResult = await this.publisher.postInstagram(data.content, topic.category);
 
-      return { platform: 'instagram', topic: topic.topic, file, igResult };
+      // Threads 크로스포스팅 (Instagram 게시 직후 동시 발행)
+      const thResult = await this.publisher.postThreads(data.content);
+
+      return { platform: 'instagram', topic: topic.topic, file, igResult, thResult };
     });
 
-    // 네이버 블로그 생성 & 포스팅
-    await this._runStep('📝 네이버 블로그 포스팅', async () => {
-      const data = await this.generator.generateNaverBlogHtml(topic);
-
-      // 법규 검증
-      const check = this.checker.check(data.textContent);
-      if (!check.pass) {
-        throw new Error(`법규 검증 실패: ${check.forbidden.join(', ') || check.missing.join(', ')}`);
-      }
-      console.log('  ✅ 법규 검증 통과');
-
-      // 파일 백업 (항상)
-      const file = this.naver.saveToFile(dateStr, data.title, data.htmlContent);
-
-      // 네이버 블로그 게시 시도 (토큰 있을 때만)
-      const naverResult = await this.naver.post(data.title, data.htmlContent, data.tags);
-
-      // ┌─────────────────────────────────────────────────
-      // │ 반자동 폴백: API 자동 게시 실패 또는 토큰 미설정 시
-      // │ 텔레그램으로 블로그 전체 내용 전송 → 복사래빗보드 → 네이버에 붙여넣기 1분
-      // └─────────────────────────────────────────────────
-      const autoPosted = naverResult && naverResult.success;
-      if (!autoPosted) {
-        // HTML 태그 제거 후 순수 텍스트로 변환 (텔레그램용)
-        const plainText = data.htmlContent
-          .replace(/<h2>/gi, '\n\n\u25a0 ')    // h2 → 소제목
-          .replace(/<\/h2>/gi, '\n')
-          .replace(/<p>/gi, '')
-          .replace(/<\/p>/gi, '\n')
-          .replace(/<strong>/gi, '')
-          .replace(/<\/strong>/gi, '')
-          .replace(/<hr>/gi, '\n────────────────\n')
-          .replace(/<br>/gi, '\n')
-          .replace(/<[^>]+>/g, '')
-          .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
-          .replace(/\n{3,}/g, '\n\n')
-          .trim();
-
-        const msg =
-          `📝 <b>네이버 블로그 수동게시 요청</b>\n` +
-          `📌 제목: ${data.title}\n` +
-          `📅 ${now.toLocaleDateString('ko-KR')}\n\n` +
-          `▶ 아래 내용을 어디스의 <b>https://blog.naver.com</b> 에 \n` +
-          `   새 글 쓰기 페이지에 붙여넣기하세요. (1분 작업)\n\n` +
-          `════════════════════\n` +
-          `${plainText.slice(0, 3000)}` +
-          (plainText.length > 3000 ? `\n...(이하 파일 영카 ${file})` : '');
-
-        await this.publisher.notifyTelegram(msg);
-        console.log('  📲 텍레그램으로 블로그 내용 전송 (반자동 복사래빗보드 방식)');
-      }
-
-      return { platform: 'naver_blog', topic: topic.topic, file, naverResult };
-    });
-
-    // YouTube Shorts 스크립트 생성 & Telegram 전송 (반자동)
-    await this._runStep('🎬 YouTube Shorts 스크립트 생성', async () => {
+    // YouTube Shorts — 완전 자동 생성 & 업로드
+    await this._runStep('🎬 YouTube Shorts 자동 생성 & 업로드', async () => {
       const data = await this.generator.generateYoutubeShorts(topic);
 
       // 법규 검증
@@ -134,68 +82,38 @@ class MasterAgent {
       }
       console.log('  ✅ 법규 검증 통과');
 
-      // 파일 백업 (항상)
-      const dir  = require('path').join(__dirname, 'generated', 'youtube-shorts');
-      const fs   = require('fs');
-      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-      const file = require('path').join(dir, `${dateStr}_shorts.txt`);
-      fs.writeFileSync(file, [
-        `[제목] ${data.title}`,
-        `[첫 화면 후크] ${data.hook}`,
-        '',
-        '[나레이션 스크립트]',
-        data.script,
-        '',
-        '[화면 자막]',
-        data.captions,
-        '',
-        '[영상 설명란]',
-        data.description,
-      ].join('\n'), 'utf-8');
-      console.log(`  💾 파일 저장: ${file}`);
+      // YouTube 완전 자동화 (ElevenLabs TTS + FFmpeg + 업로드)
+      const ytResult = await this.youtube.run(topic, data, dateStr);
 
-      // Telegram으로 전체 내용 전송 (CapCut 작업용)
-      const msg =
-        `🎬 <b>YouTube Shorts 스크립트 준비됨</b>\n` +
-        `📅 ${now.toLocaleDateString('ko-KR')}\n` +
-        `📌 주제: ${topic.topic}\n\n` +
-        `━━━━━━━━━━━━━━━━━\n` +
-        `📋 <b>영상 제목 (복사해서 YouTube에 붙여넣기)</b>\n` +
-        `${data.title}\n\n` +
-        `🔴 <b>첫 화면 큰 글씨 (0~3초)</b>\n` +
-        `${data.hook}\n\n` +
-        `🎙 <b>나레이션 스크립트</b>\n` +
-        `${data.script}\n\n` +
-        `📝 <b>화면 자막 (CapCut 텍스트 추가)</b>\n` +
-        `${data.captions}\n\n` +
-        `📄 <b>영상 설명란 (업로드 시 붙여넣기)</b>\n` +
-        `${data.description.slice(0, 500)}\n` +
-        `━━━━━━━━━━━━━━━━━\n` +
-        `💡 CapCut 작업 순서:\n` +
-        `1. 위 스크립트 읽으며 음성 녹음 (또는 TTS)\n` +
-        `2. 첫 화면에 후크 텍스트 추가\n` +
-        `3. 중간중간 자막 추가\n` +
-        `4. YouTube Shorts로 업로드 (세로 9:16)\n` +
-        `5. 제목·설명 붙여넣기 후 공개`;
+      // YouTube 업로드 실패 또는 토큰 미설정 시 → 텔레그램으로 스크립트 전송 (반자동 폴백)
+      if (!ytResult || !ytResult.success) {
+        const msg =
+          `🎬 <b>YouTube Shorts 스크립트</b>\n` +
+          `📅 ${now.toLocaleDateString('ko-KR')} | 주제: ${topic.topic}\n\n` +
+          `📋 제목: ${data.title}\n` +
+          `🔴 후크: ${data.hook}\n\n` +
+          `🎙 스크립트:\n${data.script}\n\n` +
+          `📝 자막:\n${data.captions}\n\n` +
+          `${ytResult && ytResult.skipped ? '⚙️ YouTube 토큰 설정 후 자동 업로드 활성화됩니다.' : '❌ 업로드 실패 — 수동으로 올려주세요.'}`;
+        await this.publisher.notifyTelegram(msg);
+      }
 
-      await this.publisher.notifyTelegram(msg);
-      console.log('  📲 Telegram으로 Shorts 스크립트 전송 완료');
-
-      return { platform: 'youtube_shorts', topic: topic.topic, file };
+      return { platform: 'youtube_shorts', topic: topic.topic, ytResult };
     });
 
     // 완료 Telegram 알림
-    const elapsed  = ((Date.now() - start) / 1000).toFixed(1);
-    const igPosted    = this.results.some(r => r.igResult    && r.igResult.success);
-    const naverPosted = this.results.some(r => r.naverResult && r.naverResult.success);
+    const elapsed   = ((Date.now() - start) / 1000).toFixed(1);
+    const igPosted  = this.results.some(r => r.igResult  && r.igResult.success);
+    const thPosted  = this.results.some(r => r.thResult  && r.thResult.success);
+    const ytPosted  = this.results.some(r => r.ytResult  && r.ytResult.success);
 
     await this.publisher.notifyTelegram(
       `<b>✅ 새론금융 AI 에이전트 완료</b>\n` +
       `📅 ${now.toLocaleDateString('ko-KR')}\n` +
       `📌 주제: ${topic.topic}\n` +
       `📸 Instagram: ${igPosted ? '게시 완료 ✅' : '파일 저장 (토큰 미설정)'}\n` +
-      `📝 네이버 블로그: ${naverPosted ? '게시 완료 ✅' : '파일 저장 (토큰 미설정)'}\n` +
-      `🎬 YouTube Shorts: 스크립트 전송 완료 (위 메시지 확인)\n` +
+      `🔁 Threads: ${thPosted ? '크로스포스팅 ✅' : '건너뜀 (토큰 미설정)'}\n` +
+      `🎬 YouTube Shorts: ${ytPosted ? '업로드 완료 ✅' : '스크립트 전송 (토큰 미설정)'}\n` +
       `⏱️ 소요: ${elapsed}초`
     );
 
@@ -206,17 +124,14 @@ class MasterAgent {
     console.log('\n' + '═'.repeat(54));
     console.log(`✅ 완료! (${elapsed}초 소요)`);
     console.log(`📁 백업: ./generated/instagram/`);
-    console.log(`📁 백업: ./generated/naver-blog/`);
     console.log(`📁 백업: ./generated/youtube-shorts/`);
     if (!igPosted) {
-      console.log('\n💡 Instagram 자동게시 활성화 방법:');
-      console.log('   GitHub Secrets에 다음을 설정하세요:');
+      console.log('\n💡 Instagram/Threads 활성화:');
       console.log('   INSTAGRAM_USER_ID, INSTAGRAM_ACCESS_TOKEN, OG_IMAGE_BASE_URL');
     }
-    if (!naverPosted) {
-      console.log('\n💡 네이버 블로그 자동게시 활성화 방법:');
-      console.log('   GitHub Secrets에 다음을 설정하세요:');
-      console.log('   NAVER_CLIENT_ID, NAVER_CLIENT_SECRET, NAVER_REFRESH_TOKEN, NAVER_BLOG_ID');
+    if (!ytPosted) {
+      console.log('\n💡 YouTube 완전 자동화 활성화:');
+      console.log('   ELEVENLABS_API_KEY, YOUTUBE_CLIENT_ID, YOUTUBE_CLIENT_SECRET, YOUTUBE_REFRESH_TOKEN');
     }
     console.log('═'.repeat(54) + '\n');
 

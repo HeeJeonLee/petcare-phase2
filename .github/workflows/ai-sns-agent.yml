@@ -19,7 +19,7 @@ on:
 
 jobs:
   run-agent:
-    name: AI 콘텐츠 생성 & Instagram 게시
+    name: AI 콘텐츠 생성 & 자동 게시
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -36,30 +36,36 @@ jobs:
           cache: "npm"
           cache-dependency-path: "ai-agent/package.json"
 
-      # 3. 패키지 설치
+      # 3. FFmpeg + 한국어 폰트 설치 (YouTube Shorts 영상 생성용)
+      - name: FFmpeg & 한국어 폰트 설치
+        run: sudo apt-get install -y ffmpeg fonts-nanum
+
+      # 4. 패키지 설치
       - name: 패키지 설치
         working-directory: ./ai-agent
         run: npm install
 
-      # 4. AI SDK 자동 업데이트 (항상 최신 Claude 버전 사용)
+      # 5. AI SDK 자동 업데이트 (항상 최신 Claude 버전 사용)
       - name: Anthropic SDK 최신화
         working-directory: ./ai-agent
         run: npm update @anthropic-ai/sdk
 
-      # 5. AI 에이전트 실행
+      # 6. AI 에이전트 실행
       - name: AI 에이전트 실행
         working-directory: ./ai-agent
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_USER_ID }}
           INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          OG_IMAGE_BASE_URL: ${{ secrets.OG_IMAGE_BASE_URL }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          OG_IMAGE_BASE_URL: ${{ secrets.OG_IMAGE_BASE_URL }}
-          NAVER_CLIENT_ID: ${{ secrets.NAVER_CLIENT_ID }}
-          NAVER_CLIENT_SECRET: ${{ secrets.NAVER_CLIENT_SECRET }}
-          NAVER_REFRESH_TOKEN: ${{ secrets.NAVER_REFRESH_TOKEN }}
-          NAVER_BLOG_ID: ${{ secrets.NAVER_BLOG_ID }}
+          THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+          ELEVENLABS_VOICE_ID: ${{ secrets.ELEVENLABS_VOICE_ID }}
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
         run: node master-agent.js
 
       # 6. 생성된 파일 GitHub에 자동 저장 (백업)

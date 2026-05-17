@@ -7,11 +7,15 @@
     "start": "node master-agent.js",
     "test": "node master-agent.js --test",
     "legal-test": "node legal-checker.js",
-    "content-test": "node content-generator.js"
+    "content-test": "node content-generator.js",
+    "setup": "node setup-wizard.js",
+    "youtube-auth": "node get-youtube-token.js",
+    "set-secrets": "node set-secrets.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.40.0",
     "dotenv": "^16.0.0",
+    "libsodium-wrappers": "^0.7.15",
     "node-cron": "^3.0.3",
     "node-fetch": "^2.7.0"
   },

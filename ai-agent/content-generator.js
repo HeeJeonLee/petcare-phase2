@@ -311,54 +311,122 @@ ${hashtagStr}
   }
 
   /**
-   * 유튜브 쇼츠 스크립트 생성
+   * YouTube Shorts 스크립트 자동 생성
+   * ─────────────────────────────────────────────────
+   * 완전 자동 영상 제작은 현재 무료로 불가. 대신:
+   *   1. AI가 나레이션 + 자막 + 제목 + 설명 전부 생성
+   *   2. Telegram으로 전송
+   *   3. 이희전 씨가 CapCut에서 3~5분 작업 후 업로드
+   *
+   * 법정 필수 기재사항은 영상 설명란에 자동 포함됨.
    */
-  async generateYoutubeScript(topic) {
-    const prompt = `당신은 새론금융대부중개의 유튜브 쇼츠 스크립트 작성 AI입니다.
+  async generateYoutubeShorts(topic) {
+    const topicTags = (topic.hashtags || topic.tags || []);
 
-아래 주제로 60초 이내 쇼츠 스크립트를 작성하세요.
-주제: ${topic.topic}
+    // 날짜 기반 후크 스타일 4가지 순환 (매일 다른 첫 화면)
+    const today      = new Date();
+    const hookStyle  = today.getDate() % 4;
+    const hookTone   = [
+      '충격적 사실 폭로형: "XX인데 몰랐나요?" 형식',
+      '공감 질문형: "혹시 이런 상황이세요?" 형식',
+      '오해 교정형: "사람들이 잘못 알고 있는 것" 형식',
+      '숫자 자극형: "X명 중 X명이 모르는 것" 형식',
+    ][hookStyle];
 
-필수 조건:
-1. 60초 이내 (약 150~180자 읽기 기준)
-2. 3단계 구성: 후킹(5초) → 핵심정보(45초) → 콜투액션(10초)
-3. 자연스러운 구어체 (TTS 음성 최적화)
-4. 금지 표현 절대 사용 금지
-5. 마지막: "상담은 1555-2137로 문의하세요"
-6. 영상 설명에 들어갈 해시태그 5개
+    const prompt = `당신은 YouTube Shorts 전문 스크립트 작가입니다.
+아파트 담보대출 정보 채널 "새론금융대부중개" 의 쇼츠 영상을 만듭니다.
 
-형식:
-[스크립트]
-(나레이션 텍스트)
+[오늘 주제]
+${topic.topic}
+핵심 각도: ${topic.angle || '실용적 정보 + 상담 유도'}
 
-[영상 설명]
-(유튜브 설명란 내용)
+[후크 스타일 — 오늘의 방식]
+${hookTone}
 
-주의: 법정 고지 문구는 영상 설명에 시스템이 자동 추가합니다.`;
+[타겟 시청자]
+서울/수도권 아파트 보유자 중:
+• 은행에서 대출 거절당한 분 (DSR 초과, 소득증빙 부족)
+• 역전세로 보증금 반환이 급한 임대인
+• 개인사업자/자영업자로 소득증빙이 어려운 분
+• 아파트 추가 구입 잔금이 필요한 분
+
+━━━ 출력 형식 (정확히 이 형식으로) ━━━
+
+===TITLE===
+(유튜브 영상 제목: 30자 이내, 핵심 키워드 포함, 클릭 유도)
+
+===HOOK===
+(첫 화면 0~3초에 큰 글씨로 나오는 텍스트: 20자 이내, 강렬하게)
+
+===SCRIPT===
+(나레이션 전체 — 자연스러운 구어체, 읽으면 45~55초 분량, 약 220~270자)
+조건:
+- "안녕하세요" 등 인사 없이 바로 시작
+- 구체적 숫자 최소 1개 (예: DSR 40%, 9억 아파트, 5영업일 등)
+- 중간에 "사실은요," "그런데요," "이게 핵심인데요," 같은 구어적 전환어 사용
+- 마무리: "궁금하신 점은 1555-2137로 무료 상담 가능합니다. 새론금융대부중개였습니다."
+- 절대 금지: "보장", "100% 승인", "무조건", "확정"
+
+===CAPTIONS===
+(영상 중간중간 화면에 자막으로 띄울 핵심 문구 4~5개, 각 줄에 하나씩, 각 15자 이내)
+
+===DESCRIPTION===
+(유튜브 영상 설명란: 150자 이내, 핵심 정보 + 상담 번호 포함)
+📞 무료 상담: 1555-2137 (새론금융대부중개)`;
 
     try {
       const response = await this.client.messages.create({
         model: config.ai.model,
-        max_tokens: 800,
+        max_tokens: 1000,
         messages: [{ role: 'user', content: prompt }],
       });
 
-      const content = response.content[0].text;
-      const description = this._extractDescription(content);
-      const finalDescription = this.checker.addLegalDisclosure(description);
-      
+      const raw = response.content[0].text;
+
+      // 파트별 파싱
+      const titleMatch   = raw.match(/===TITLE===\s*\n(.+)/);
+      const hookMatch    = raw.match(/===HOOK===\s*\n(.+)/);
+      const scriptMatch  = raw.match(/===SCRIPT===\s*\n([\s\S]+?)(?====CAPTIONS===)/);
+      const captionsMatch= raw.match(/===CAPTIONS===\s*\n([\s\S]+?)(?====DESCRIPTION===)/);
+      const descMatch    = raw.match(/===DESCRIPTION===\s*\n([\s\S]+)/);
+
+      const title    = titleMatch    ? titleMatch[1].trim()    : topic.topic;
+      const hook     = hookMatch     ? hookMatch[1].trim()     : '';
+      const script   = scriptMatch   ? scriptMatch[1].trim()   : raw;
+      const captions = captionsMatch ? captionsMatch[1].trim() : '';
+      const descRaw  = descMatch     ? descMatch[1].trim()     : '';
+
+      // 영상 설명에 법정 고지문 자동 추가
+      const legalNote = `\n\n─────────────────────\n` +
+        `▪ 등록번호: 2026-수원-2324 (대부중개업)\n` +
+        `▪ 최고 이자율: 연 20% 이내 (법정 최고금리)\n` +
+        `▪ 과도한 빚은 당신에게 큰 불행을 안겨줄 수 있습니다\n` +
+        `▪ 대출 전 반드시 상환 능력을 점검하세요`;
+      const description = descRaw + legalNote;
+
+      // 법규 검사 (스크립트 + 설명 합산)
+      const fullText = script + ' ' + description;
+
       return {
-        platform: 'youtube',
-        script: content,
-        description: finalDescription,
-        tags: topic.tags,
-        legalCheck: this.checker.check(finalDescription),
+        platform: 'youtube_shorts',
+        title,
+        hook,
+        script,
+        captions,
+        description,
+        tags: topicTags,
+        legalCheck: this.checker.check(fullText),
         generatedAt: new Date().toISOString(),
       };
     } catch (err) {
-      console.error('유튜브 스크립트 생성 오류:', err.message);
+      console.error('YouTube Shorts 스크립트 생성 오류:', err.message);
       throw err;
     }
+  }
+
+  /** @deprecated generateYoutubeShorts() 사용 */
+  async generateYoutubeScript(topic) {
+    return this.generateYoutubeShorts(topic);
   }
 
   /**

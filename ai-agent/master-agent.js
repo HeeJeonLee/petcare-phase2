@@ -123,6 +123,67 @@ class MasterAgent {
       return { platform: 'naver_blog', topic: topic.topic, file, naverResult };
     });
 
+    // YouTube Shorts 스크립트 생성 & Telegram 전송 (반자동)
+    await this._runStep('🎬 YouTube Shorts 스크립트 생성', async () => {
+      const data = await this.generator.generateYoutubeShorts(topic);
+
+      // 법규 검증
+      const check = this.checker.check(data.script + ' ' + data.description);
+      if (!check.pass) {
+        throw new Error(`법규 검증 실패: ${check.forbidden.join(', ') || check.missing.join(', ')}`);
+      }
+      console.log('  ✅ 법규 검증 통과');
+
+      // 파일 백업 (항상)
+      const dir  = require('path').join(__dirname, 'generated', 'youtube-shorts');
+      const fs   = require('fs');
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      const file = require('path').join(dir, `${dateStr}_shorts.txt`);
+      fs.writeFileSync(file, [
+        `[제목] ${data.title}`,
+        `[첫 화면 후크] ${data.hook}`,
+        '',
+        '[나레이션 스크립트]',
+        data.script,
+        '',
+        '[화면 자막]',
+        data.captions,
+        '',
+        '[영상 설명란]',
+        data.description,
+      ].join('\n'), 'utf-8');
+      console.log(`  💾 파일 저장: ${file}`);
+
+      // Telegram으로 전체 내용 전송 (CapCut 작업용)
+      const msg =
+        `🎬 <b>YouTube Shorts 스크립트 준비됨</b>\n` +
+        `📅 ${now.toLocaleDateString('ko-KR')}\n` +
+        `📌 주제: ${topic.topic}\n\n` +
+        `━━━━━━━━━━━━━━━━━\n` +
+        `📋 <b>영상 제목 (복사해서 YouTube에 붙여넣기)</b>\n` +
+        `${data.title}\n\n` +
+        `🔴 <b>첫 화면 큰 글씨 (0~3초)</b>\n` +
+        `${data.hook}\n\n` +
+        `🎙 <b>나레이션 스크립트</b>\n` +
+        `${data.script}\n\n` +
+        `📝 <b>화면 자막 (CapCut 텍스트 추가)</b>\n` +
+        `${data.captions}\n\n` +
+        `📄 <b>영상 설명란 (업로드 시 붙여넣기)</b>\n` +
+        `${data.description.slice(0, 500)}\n` +
+        `━━━━━━━━━━━━━━━━━\n` +
+        `💡 CapCut 작업 순서:\n` +
+        `1. 위 스크립트 읽으며 음성 녹음 (또는 TTS)\n` +
+        `2. 첫 화면에 후크 텍스트 추가\n` +
+        `3. 중간중간 자막 추가\n` +
+        `4. YouTube Shorts로 업로드 (세로 9:16)\n` +
+        `5. 제목·설명 붙여넣기 후 공개`;
+
+      await this.publisher.notifyTelegram(msg);
+      console.log('  📲 Telegram으로 Shorts 스크립트 전송 완료');
+
+      return { platform: 'youtube_shorts', topic: topic.topic, file };
+    });
+
     // 완료 Telegram 알림
     const elapsed  = ((Date.now() - start) / 1000).toFixed(1);
     const igPosted    = this.results.some(r => r.igResult    && r.igResult.success);
@@ -134,6 +195,7 @@ class MasterAgent {
       `📌 주제: ${topic.topic}\n` +
       `📸 Instagram: ${igPosted ? '게시 완료 ✅' : '파일 저장 (토큰 미설정)'}\n` +
       `📝 네이버 블로그: ${naverPosted ? '게시 완료 ✅' : '파일 저장 (토큰 미설정)'}\n` +
+      `🎬 YouTube Shorts: 스크립트 전송 완료 (위 메시지 확인)\n` +
       `⏱️ 소요: ${elapsed}초`
     );
 
@@ -144,6 +206,8 @@ class MasterAgent {
     console.log('\n' + '═'.repeat(54));
     console.log(`✅ 완료! (${elapsed}초 소요)`);
     console.log(`📁 백업: ./generated/instagram/`);
+    console.log(`📁 백업: ./generated/naver-blog/`);
+    console.log(`📁 백업: ./generated/youtube-shorts/`);
     if (!igPosted) {
       console.log('\n💡 Instagram 자동게시 활성화 방법:');
       console.log('   GitHub Secrets에 다음을 설정하세요:');

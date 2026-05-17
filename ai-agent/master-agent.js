@@ -82,8 +82,43 @@ class MasterAgent {
       // 파일 백업 (항상)
       const file = this.naver.saveToFile(dateStr, data.title, data.htmlContent);
 
-      // 네이버 블로그 게시 (토큰 있을 때만)
+      // 네이버 블로그 게시 시도 (토큰 있을 때만)
       const naverResult = await this.naver.post(data.title, data.htmlContent, data.tags);
+
+      // ┌─────────────────────────────────────────────────
+      // │ 반자동 폴백: API 자동 게시 실패 또는 토큰 미설정 시
+      // │ 텔레그램으로 블로그 전체 내용 전송 → 복사래빗보드 → 네이버에 붙여넣기 1분
+      // └─────────────────────────────────────────────────
+      const autoPosted = naverResult && naverResult.success;
+      if (!autoPosted) {
+        // HTML 태그 제거 후 순수 텍스트로 변환 (텔레그램용)
+        const plainText = data.htmlContent
+          .replace(/<h2>/gi, '\n\n\u25a0 ')    // h2 → 소제목
+          .replace(/<\/h2>/gi, '\n')
+          .replace(/<p>/gi, '')
+          .replace(/<\/p>/gi, '\n')
+          .replace(/<strong>/gi, '')
+          .replace(/<\/strong>/gi, '')
+          .replace(/<hr>/gi, '\n────────────────\n')
+          .replace(/<br>/gi, '\n')
+          .replace(/<[^>]+>/g, '')
+          .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+          .replace(/\n{3,}/g, '\n\n')
+          .trim();
+
+        const msg =
+          `📝 <b>네이버 블로그 수동게시 요청</b>\n` +
+          `📌 제목: ${data.title}\n` +
+          `📅 ${now.toLocaleDateString('ko-KR')}\n\n` +
+          `▶ 아래 내용을 어디스의 <b>https://blog.naver.com</b> 에 \n` +
+          `   새 글 쓰기 페이지에 붙여넣기하세요. (1분 작업)\n\n` +
+          `════════════════════\n` +
+          `${plainText.slice(0, 3000)}` +
+          (plainText.length > 3000 ? `\n...(이하 파일 영카 ${file})` : '');
+
+        await this.publisher.notifyTelegram(msg);
+        console.log('  📲 텍레그램으로 블로그 내용 전송 (반자동 복사래빗보드 방식)');
+      }
 
       return { platform: 'naver_blog', topic: topic.topic, file, naverResult };
     });

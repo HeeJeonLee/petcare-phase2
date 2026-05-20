@@ -11,10 +11,10 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       manifest: {
-        name: 'PetCare+ - AI 펫보험 비교 플랫폼',
-        short_name: 'PetCare+',
-        description: 'Claude AI 기반 24시간 무료 펫보험 상담 및 8개사 실시간 비교',
-        theme_color: '#3b82f6',
+        name: '새론금융대부중개 - 합리적 한도, 신속한 상담',
+        short_name: '새론금융',
+        description: '전국 대형 대부사 비교, AI 한도조회, 빠른 승인 안내',
+        theme_color: '#1e3a8a',
         background_color: '#ffffff',
         display: 'standalone',
         scope: '/',
@@ -31,44 +31,12 @@ export default defineConfig({
             sizes: '512x512',
             type: 'image/png',
             purpose: 'any'
-          },
-          {
-            src: '/icon-maskable-192.png',
-            sizes: '192x192',
-            type: 'image/png',
-            purpose: 'maskable'
-          }
-        ],
-        screenshots: [
-          {
-            src: '/screenshot-1.png',
-            sizes: '540x720',
-            type: 'image/png',
-            form_factor: 'narrow'
-          },
-          {
-            src: '/screenshot-2.png',
-            sizes: '1280x720',
-            type: 'image/png',
-            form_factor: 'wide'
           }
         ]
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
-        navigateFallback: '/index.html',
-        runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/api\.anthropic\.com\/.*/i,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'claude-api-cache',
-              expiration: {
-                maxAgeSeconds: 3600 // 1시간
-              }
-            }
-          }
-        ]
+        navigateFallback: '/index.html'
       }
     })
   ],

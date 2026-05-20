@@ -1,6 +1,6 @@
 param(
   [switch]$Loop,
-  [int]$IntervalSeconds = 300,
+  [int]$IntervalSeconds = 60,
   [string]$MessagePrefix = "chore: auto-sync"
 )
 

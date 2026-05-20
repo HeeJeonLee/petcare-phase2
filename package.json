@@ -8,7 +8,7 @@
     "api-server": "node api-server.js",
     "dev:full": "concurrently \"npm run dev\" \"npm run api-server\"",
     "git:auto-sync": "powershell -ExecutionPolicy Bypass -File ./scripts/auto-sync.ps1",
-    "git:auto-sync:watch": "powershell -ExecutionPolicy Bypass -File ./scripts/auto-sync.ps1 -Loop -IntervalSeconds 300",
+    "git:auto-sync:watch": "powershell -ExecutionPolicy Bypass -File ./scripts/auto-sync.ps1 -Loop -IntervalSeconds 60",
     "build": "vite build",
     "preview": "vite preview"
   },

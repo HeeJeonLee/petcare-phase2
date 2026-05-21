@@ -324,7 +324,8 @@ class GoalTracker {
     Object.keys(stats).forEach(k => {
       const r = stats[k];
       if (r.sent > 0) {
-        r.score = Number((((r.reply * 1) + (r.exec * 2)) / r.sent).toFixed(2));
+        // 실행 성과를 더 강하게 반영: exec는 reply 대비 3배 가중치
+        r.score = Number((((r.reply * 1) + (r.exec * 3)) / r.sent).toFixed(2));
       }
     });
 
@@ -343,11 +344,11 @@ class GoalTracker {
   getRecommendedTone(partnerName = '', days = 30) {
     const partnerReport = this.getTonePerformance(days, partnerName);
     const partnerTop = partnerReport.ranking[0];
-    if (partnerTop && partnerTop.sent >= 2) return partnerTop.tone;
+    if (partnerTop && partnerTop.sent >= 1) return partnerTop.tone;
 
     const globalReport = this.getTonePerformance(days);
     const globalTop = globalReport.ranking[0];
-    if (globalTop && globalTop.sent >= 3) return globalTop.tone;
+    if (globalTop && globalTop.sent >= 1) return globalTop.tone;
 
     return 'formal';
   }
@@ -358,7 +359,7 @@ class GoalTracker {
       ? `🧪 <b>톤 성과 리포트 (${partnerName}, ${days}일)</b>`
       : `🧪 <b>톤 성과 리포트 (전체, ${days}일)</b>`;
 
-    const lines = [title, '톤 | 발송 | 답장 | 실행 | 미응답 | 점수', ''];
+    const lines = [title, '톤 | 발송 | 답장 | 실행 | 미응답 | 점수', '점수식: (답장×1 + 실행×3) / 발송', ''];
     rep.ranking.forEach(r => {
       lines.push(`${this._toneLabel(r.tone)} | ${r.sent} | ${r.reply} | ${r.exec} | ${r.no} | ${r.score}`);
     });
@@ -452,9 +453,7 @@ class GoalTracker {
       lines.push('   권장: 오늘 1:1 카카오 발송 + 24시간 내 팔로업');
       lines.push(`   추천 톤: ${this._toneLabel(recommendedTone)}`);
       const tone = this._buildToneVariants(p);
-      lines.push(`   맞춤 1줄(정중): ${tone.formal}`);
-      lines.push(`   맞춤 1줄(친근): ${tone.friendly}`);
-      lines.push(`   맞춤 1줄(강조): ${tone.emphasis}`);
+      this._orderedToneLines(tone, recommendedTone).forEach(x => lines.push(`   ${x}`));
     });
 
     lines.push('');
@@ -498,6 +497,25 @@ class GoalTracker {
           : '지금은 문구 재정비가 우선입니다. 타겟을 은행거절·긴급자금 고객으로 압축해 재접촉을 권장드립니다.';
 
     return { formal, friendly, emphasis };
+  }
+
+  _orderedToneLines(toneMap, recommendedTone) {
+    const entries = [
+      { key: 'formal', label: '정중', text: toneMap.formal },
+      { key: 'friendly', label: '친근', text: toneMap.friendly },
+      { key: 'emphasis', label: '강조', text: toneMap.emphasis },
+    ];
+
+    entries.sort((a, b) => {
+      const aw = a.key === recommendedTone ? 0 : 1;
+      const bw = b.key === recommendedTone ? 0 : 1;
+      return aw - bw;
+    });
+
+    return entries.map((e, idx) => {
+      const badge = idx === 0 ? '추천우선' : '대체안';
+      return `맞춤 1줄(${e.label}, ${badge}): ${e.text}`;
+    });
   }
 
   _normalizeTone(tone) {

@@ -65,12 +65,33 @@ class MasterAgent {
       return { success: true, mode: 'add-partner', report };
     }
 
+    if (options.addPartnerExec) {
+      const report = this.tracker.addPartnerExecution(
+        options.addPartnerExec,
+        options.count || 1,
+        'manual',
+        options.note || 'manual partner exec add'
+      );
+      const msg = this.tracker.buildPartnerPerformanceMessage(options.days || 30);
+      console.log('\n' + msg.replace(/<[^>]+>/g, ''));
+      await this.publisher.notifyTelegram(msg);
+      return { success: true, mode: 'add-partner-exec', report };
+    }
+
     if (options.partnerReportOnly) {
       const msg = this.tracker.buildPartnerWeeklyMessage(options.days || 7);
       const file = this.publisher.saveToFile('partner-weekly-report', dateStr, msg.replace(/<[^>]+>/g, ''));
       console.log('\n' + msg.replace(/<[^>]+>/g, ''));
       await this.publisher.notifyTelegram(msg);
       return { success: true, mode: 'partner-report', file };
+    }
+
+    if (options.partnerPerformanceOnly) {
+      const msg = this.tracker.buildPartnerPerformanceMessage(options.days || 30);
+      const file = this.publisher.saveToFile('partner-performance-report', dateStr, msg.replace(/<[^>]+>/g, ''));
+      console.log('\n' + msg.replace(/<[^>]+>/g, ''));
+      await this.publisher.notifyTelegram(msg);
+      return { success: true, mode: 'partner-performance', file };
     }
 
     if (options.planOnly) {
@@ -272,9 +293,11 @@ class MasterAgent {
       planOnly: false,
       forceEscalation: false,
       addPartner: '',
+      addPartnerExec: '',
       count: 1,
       days: 7,
       partnerReportOnly: false,
+      partnerPerformanceOnly: false,
     };
     argv.forEach(arg => {
       if (arg.startsWith('--add-exec=')) {
@@ -285,6 +308,9 @@ class MasterAgent {
       }
       if (arg.startsWith('--add-partner=')) {
         out.addPartner = arg.split('=').slice(1).join('=').trim();
+      }
+      if (arg.startsWith('--add-partner-exec=')) {
+        out.addPartnerExec = arg.split('=').slice(1).join('=').trim();
       }
       if (arg.startsWith('--count=')) {
         out.count = Number(arg.split('=')[1]) || 1;
@@ -300,6 +326,9 @@ class MasterAgent {
       }
       if (arg === '--partner-report') {
         out.partnerReportOnly = true;
+      }
+      if (arg === '--partner-performance') {
+        out.partnerPerformanceOnly = true;
       }
     });
     return out;

@@ -34,6 +34,7 @@ class GoalTracker {
       runLogs: [],
       executionLogs: [],
       partnerReferrals: [],
+      partnerExecutions: [],
       updatedAt: new Date().toISOString(),
     };
     this._save(initial);
@@ -105,6 +106,35 @@ class GoalTracker {
     return this.getPartnerWeeklyRanking();
   }
 
+  addPartnerExecution(partnerName, count = 1, source = 'manual', note = '') {
+    const name = String(partnerName || '').trim();
+    const safeCount = Number.isFinite(count) ? Math.max(0, Math.floor(count)) : 0;
+    if (!name || !safeCount) return this.getPartnerPerformance();
+
+    const next = { ...this.state };
+    next.partnerExecutions = next.partnerExecutions || [];
+    next.partnerExecutions.push({
+      timestamp: new Date().toISOString(),
+      partnerName: name,
+      count: safeCount,
+      source,
+      note,
+    });
+
+    // 전체 실행건수도 동기화
+    next.actualExecutions = (next.actualExecutions || 0) + safeCount;
+    next.executionLogs = next.executionLogs || [];
+    next.executionLogs.push({
+      timestamp: new Date().toISOString(),
+      count: safeCount,
+      source: `${source}:partner`,
+      note: note || name,
+    });
+
+    this._save(next);
+    return this.getPartnerPerformance();
+  }
+
   getPartnerWeeklyRanking(days = 7) {
     const logs = this.state.partnerReferrals || [];
     const now = Date.now();
@@ -153,6 +183,97 @@ class GoalTracker {
 
     lines.push('');
     lines.push('기록 예시: node master-agent.js --add-partner=홍길동 --count=2');
+    return lines.join('\n');
+  }
+
+  getPartnerPerformance(days = 30) {
+    const now = Date.now();
+    const cutoff = now - (Math.max(1, days) * 86400000);
+
+    const referrals = new Map();
+    const executions = new Map();
+
+    for (const log of (this.state.partnerReferrals || [])) {
+      const ts = new Date(log.timestamp).getTime();
+      if (!Number.isFinite(ts) || ts < cutoff) continue;
+      const key = String(log.partnerName || '').trim() || 'unknown';
+      referrals.set(key, (referrals.get(key) || 0) + (Number(log.count) || 0));
+    }
+
+    for (const log of (this.state.partnerExecutions || [])) {
+      const ts = new Date(log.timestamp).getTime();
+      if (!Number.isFinite(ts) || ts < cutoff) continue;
+      const key = String(log.partnerName || '').trim() || 'unknown';
+      executions.set(key, (executions.get(key) || 0) + (Number(log.count) || 0));
+    }
+
+    const partners = new Set([...referrals.keys(), ...executions.keys()]);
+    const rows = Array.from(partners).map(name => {
+      const ref = referrals.get(name) || 0;
+      const exe = executions.get(name) || 0;
+      const conv = ref > 0 ? (exe / ref) * 100 : 0;
+      let priority = 'C';
+      if (ref >= 5 && conv >= 35) priority = 'A';
+      else if (ref >= 3 && conv >= 20) priority = 'B';
+
+      return {
+        partnerName: name,
+        referrals: ref,
+        executions: exe,
+        conversionRate: Number(conv.toFixed(1)),
+        priority,
+      };
+    });
+
+    rows.sort((a, b) => {
+      if (b.priority !== a.priority) return b.priority.localeCompare(a.priority);
+      if (b.conversionRate !== a.conversionRate) return b.conversionRate - a.conversionRate;
+      return b.executions - a.executions;
+    });
+
+    const recommendations = rows.slice(0, 5).map(x => {
+      if (x.priority === 'A') {
+        return `${x.partnerName}: 우선 협업 강화 (주 2회 접촉)`;
+      }
+      if (x.priority === 'B') {
+        return `${x.partnerName}: 유지/육성 (주 1회 접촉)`;
+      }
+      return `${x.partnerName}: 메시지 개선 필요 (제안문/응답속도 점검)`;
+    });
+
+    return {
+      days,
+      rows,
+      recommendations,
+      generatedAt: new Date().toISOString(),
+    };
+  }
+
+  buildPartnerPerformanceMessage(days = 30) {
+    const report = this.getPartnerPerformance(days);
+    const lines = [
+      `📈 <b>파트너 전환율 리포트 (${report.days}일)</b>`,
+      '기준: 소개건수 대비 실행건수',
+      '',
+    ];
+
+    if (!report.rows.length) {
+      lines.push('아직 집계할 파트너 데이터가 없습니다.');
+    } else {
+      lines.push('이름 | 소개 | 실행 | 전환율 | 우선순위');
+      report.rows.slice(0, 10).forEach(x => {
+        lines.push(`${x.partnerName} | ${x.referrals} | ${x.executions} | ${x.conversionRate}% | ${x.priority}`);
+      });
+
+      lines.push('');
+      lines.push('추천 액션:');
+      report.recommendations.forEach((r, i) => {
+        lines.push(`${i + 1}. ${r}`);
+      });
+    }
+
+    lines.push('');
+    lines.push('실행 기록 예시: node master-agent.js --add-partner-exec=홍길동 --count=1');
     return lines.join('\n');
   }
 

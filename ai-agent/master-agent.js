@@ -110,6 +110,27 @@ class MasterAgent {
       return { success: true, mode: 'partner-today-top', file };
     }
 
+    if (options.toneFeedbackPartner) {
+      const report = this.tracker.addToneFeedback(
+        options.toneFeedbackPartner,
+        options.toneValue,
+        options.outcomeValue,
+        options.note || 'manual tone feedback'
+      );
+      const msg = this.tracker.buildToneReportMessage(options.days || 30, options.toneFeedbackPartner);
+      console.log('\n' + msg.replace(/<[^>]+>/g, ''));
+      await this.publisher.notifyTelegram(msg);
+      return { success: true, mode: 'tone-feedback', report };
+    }
+
+    if (options.toneReportOnly) {
+      const msg = this.tracker.buildToneReportMessage(options.days || 30, options.toneReportPartner || '');
+      const file = this.publisher.saveToFile('tone-performance-report', dateStr, msg.replace(/<[^>]+>/g, ''));
+      console.log('\n' + msg.replace(/<[^>]+>/g, ''));
+      await this.publisher.notifyTelegram(msg);
+      return { success: true, mode: 'tone-report', file };
+    }
+
     if (options.planOnly) {
       const plan = this.tracker.buildActionPlan();
       if (options.forceEscalation && plan.riskLevel === 'GREEN') {
@@ -331,6 +352,11 @@ class MasterAgent {
       partnerOutreachOnly: false,
       partnerTodayTopOnly: false,
       topLimit: 3,
+      toneFeedbackPartner: '',
+      toneValue: 'formal',
+      outcomeValue: 'no',
+      toneReportOnly: false,
+      toneReportPartner: '',
     };
     argv.forEach(arg => {
       if (arg.startsWith('--add-exec=')) {
@@ -354,6 +380,18 @@ class MasterAgent {
       if (arg.startsWith('--top-limit=')) {
         out.topLimit = Number(arg.split('=')[1]) || 3;
       }
+      if (arg.startsWith('--tone-feedback=')) {
+        out.toneFeedbackPartner = arg.split('=').slice(1).join('=').trim();
+      }
+      if (arg.startsWith('--tone=')) {
+        out.toneValue = arg.split('=')[1] || 'formal';
+      }
+      if (arg.startsWith('--outcome=')) {
+        out.outcomeValue = arg.split('=')[1] || 'no';
+      }
+      if (arg.startsWith('--tone-partner=')) {
+        out.toneReportPartner = arg.split('=').slice(1).join('=').trim();
+      }
       if (arg === '--plan-only') {
         out.planOnly = true;
       }
@@ -371,6 +409,9 @@ class MasterAgent {
       }
       if (arg === '--partner-today-top') {
         out.partnerTodayTopOnly = true;
+      }
+      if (arg === '--tone-report') {
+        out.toneReportOnly = true;
       }
     });
     return out;

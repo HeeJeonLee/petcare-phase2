@@ -35,6 +35,7 @@ class GoalTracker {
       executionLogs: [],
       partnerReferrals: [],
       partnerExecutions: [],
+      toneLogs: [],
       updatedAt: new Date().toISOString(),
     };
     this._save(initial);
@@ -277,6 +278,96 @@ class GoalTracker {
     return lines.join('\n');
   }
 
+  addToneFeedback(partnerName, tone, outcome, note = '') {
+    const name = String(partnerName || '').trim();
+    const safeTone = this._normalizeTone(tone);
+    const safeOutcome = this._normalizeOutcome(outcome);
+    if (!name) return this.getTonePerformance();
+
+    const next = { ...this.state };
+    next.toneLogs = next.toneLogs || [];
+    next.toneLogs.push({
+      timestamp: new Date().toISOString(),
+      partnerName: name,
+      tone: safeTone,
+      outcome: safeOutcome,
+      note,
+    });
+
+    this._save(next);
+    return this.getTonePerformance();
+  }
+
+  getTonePerformance(days = 30, partnerName = '') {
+    const logs = this.state.toneLogs || [];
+    const now = Date.now();
+    const cutoff = now - (Math.max(1, days) * 86400000);
+    const filterName = String(partnerName || '').trim();
+
+    const init = () => ({ sent: 0, reply: 0, exec: 0, no: 0, score: 0 });
+    const stats = { formal: init(), friendly: init(), emphasis: init() };
+
+    for (const log of logs) {
+      const ts = new Date(log.timestamp).getTime();
+      if (!Number.isFinite(ts) || ts < cutoff) continue;
+      if (filterName && log.partnerName !== filterName) continue;
+
+      const tone = this._normalizeTone(log.tone);
+      const outcome = this._normalizeOutcome(log.outcome);
+      const row = stats[tone];
+      row.sent += 1;
+      if (outcome === 'reply') row.reply += 1;
+      if (outcome === 'exec') row.exec += 1;
+      if (outcome === 'no') row.no += 1;
+    }
+
+    Object.keys(stats).forEach(k => {
+      const r = stats[k];
+      if (r.sent > 0) {
+        r.score = Number((((r.reply * 1) + (r.exec * 2)) / r.sent).toFixed(2));
+      }
+    });
+
+    const ranking = Object.entries(stats)
+      .map(([tone, row]) => ({ tone, ...row }))
+      .sort((a, b) => b.score - a.score || b.exec - a.exec || b.reply - a.reply);
+
+    return {
+      days,
+      partnerName: filterName || null,
+      ranking,
+      generatedAt: new Date().toISOString(),
+    };
+  }
+
+  getRecommendedTone(partnerName = '', days = 30) {
+    const partnerReport = this.getTonePerformance(days, partnerName);
+    const partnerTop = partnerReport.ranking[0];
+    if (partnerTop && partnerTop.sent >= 2) return partnerTop.tone;
+
+    const globalReport = this.getTonePerformance(days);
+    const globalTop = globalReport.ranking[0];
+    if (globalTop && globalTop.sent >= 3) return globalTop.tone;
+
+    return 'formal';
+  }
+
+  buildToneReportMessage(days = 30, partnerName = '') {
+    const rep = this.getTonePerformance(days, partnerName);
+    const title = partnerName
+      ? `🧪 <b>톤 성과 리포트 (${partnerName}, ${days}일)</b>`
+      : `🧪 <b>톤 성과 리포트 (전체, ${days}일)</b>`;
+
+    const lines = [title, '톤 | 발송 | 답장 | 실행 | 미응답 | 점수', ''];
+    rep.ranking.forEach(r => {
+      lines.push(`${this._toneLabel(r.tone)} | ${r.sent} | ${r.reply} | ${r.exec} | ${r.no} | ${r.score}`);
+    });
+    lines.push('');
+    lines.push(`추천 톤: ${this._toneLabel(this.getRecommendedTone(partnerName, days))}`);
+    lines.push('기록 예시: node master-agent.js --tone-feedback=홍길동 --tone=formal --outcome=reply');
+    return lines.join('\n');
+  }
+
   getTopPartnersForOutreach(days = 30, limit = 5) {
     const report = this.getPartnerPerformance(days);
     const rows = report.rows
@@ -355,9 +446,11 @@ class GoalTracker {
     }
 
     top.picked.forEach((p, i) => {
+      const recommendedTone = this.getRecommendedTone(p.partnerName, 30);
       lines.push(`${i + 1}. ${p.partnerName} (등급 ${p.priority})`);
       lines.push(`   소개 ${p.referrals}건 | 실행 ${p.executions}건 | 전환율 ${p.conversionRate}%`);
       lines.push('   권장: 오늘 1:1 카카오 발송 + 24시간 내 팔로업');
+      lines.push(`   추천 톤: ${this._toneLabel(recommendedTone)}`);
       const tone = this._buildToneVariants(p);
       lines.push(`   맞춤 1줄(정중): ${tone.formal}`);
       lines.push(`   맞춤 1줄(친근): ${tone.friendly}`);
@@ -405,6 +498,27 @@ class GoalTracker {
           : '지금은 문구 재정비가 우선입니다. 타겟을 은행거절·긴급자금 고객으로 압축해 재접촉을 권장드립니다.';
 
     return { formal, friendly, emphasis };
+  }
+
+  _normalizeTone(tone) {
+    const t = String(tone || '').toLowerCase();
+    if (t === 'friendly' || t === '친근') return 'friendly';
+    if (t === 'emphasis' || t === '강조') return 'emphasis';
+    return 'formal';
+  }
+
+  _normalizeOutcome(outcome) {
+    const o = String(outcome || '').toLowerCase();
+    if (o === 'reply' || o === '답장') return 'reply';
+    if (o === 'exec' || o === 'execution' || o === '실행') return 'exec';
+    if (o === 'no' || o === 'none' || o === '미응답') return 'no';
+    return 'no';
+  }
+
+  _toneLabel(tone) {
+    if (tone === 'friendly') return '친근';
+    if (tone === 'emphasis') return '강조';
+    return '정중';
   }
 
   getSummary() {

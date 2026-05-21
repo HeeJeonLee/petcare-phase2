@@ -277,6 +277,46 @@ class GoalTracker {
     return lines.join('\n');
   }
 
+  getTopPartnersForOutreach(days = 30, limit = 5) {
+    const report = this.getPartnerPerformance(days);
+    const rows = report.rows
+      .filter(x => x.priority === 'A' || x.priority === 'B')
+      .slice(0, Math.max(1, limit));
+    return { days, rows, generatedAt: new Date().toISOString() };
+  }
+
+  buildPartnerKakaoOutreachPack(days = 30) {
+    const top = this.getTopPartnersForOutreach(days, 5);
+    const lines = [
+      `=== 파트너 맞춤 카카오 메시지 팩 (${days}일 성과 기준) ===`,
+      `생성시각: ${new Date().toLocaleString('ko-KR')}`,
+      '',
+    ];
+
+    if (!top.rows.length) {
+      lines.push('현재 A/B 등급 파트너 데이터가 없습니다.');
+      lines.push('먼저 소개건수/실행건수를 누적해 주세요.');
+      return lines.join('\n');
+    }
+
+    top.rows.forEach((p, idx) => {
+      const cadence = p.priority === 'A' ? '주 2회' : '주 1회';
+      lines.push(`[${idx + 1}] ${p.partnerName} | 등급 ${p.priority}`);
+      lines.push(`- 최근 소개 ${p.referrals}건 / 실행 ${p.executions}건 / 전환율 ${p.conversionRate}%`);
+      lines.push(`- 권장 접촉 빈도: ${cadence}`);
+      lines.push('- 메시지 템플릿:');
+      lines.push('안녕하세요, 새론금융대부중개 김덕진 대표입니다.');
+      lines.push('최근에 전달 주신 케이스들 빠르게 확인해드리고 있습니다.');
+      lines.push('이번 주도 은행 한도 초과/잔금 부족/전세퇴거자금 이슈 고객이 있으시면 우선 대응하겠습니다.');
+      lines.push('필요하시면 케이스 요약만 먼저 보내주셔도 즉시 가능여부 안내드리겠습니다.');
+      lines.push('등록번호: 2026-수원-2324 | saeloan.co.kr | 1555-2137');
+      lines.push('');
+    });
+
+    lines.push('운영 원칙: 과장표현 금지, 리베이트 금지, 대외 명의 김덕진 유지');
+    return lines.join('\n');
+  }
+
   getSummary() {
     const now = new Date();
     const start = new Date(this.state.startDate + 'T00:00:00');

@@ -94,6 +94,14 @@ class MasterAgent {
       return { success: true, mode: 'partner-performance', file };
     }
 
+    if (options.partnerOutreachOnly) {
+      const text = this.tracker.buildPartnerKakaoOutreachPack(options.days || 30);
+      const file = this.publisher.saveToFile('partner-kakao-outreach', dateStr, text);
+      console.log('\n' + text);
+      await this.publisher.notifyTelegram(`<b>📨 파트너 맞춤 카카오 팩</b>\n${text}`);
+      return { success: true, mode: 'partner-outreach', file };
+    }
+
     if (options.planOnly) {
       const plan = this.tracker.buildActionPlan();
       if (options.forceEscalation && plan.riskLevel === 'GREEN') {
@@ -200,6 +208,12 @@ class MasterAgent {
       return { platform: 'daily_plan', topic: topic.topic, file };
     });
 
+    await this._runStep('📨 파트너 맞춤 카카오 팩 생성', async () => {
+      const text = this.tracker.buildPartnerKakaoOutreachPack(30);
+      const file = this.publisher.saveToFile('partner-kakao-outreach', dateStr, text);
+      return { platform: 'partner_outreach', topic: topic.topic, file };
+    });
+
     if (plan.escalation && plan.escalation.enabled) {
       await this._runStep('🚨 리스크 강화 플랜 생성', async () => {
         const text = this._buildEscalationPack(plan, now);
@@ -236,6 +250,7 @@ class MasterAgent {
       `🤝 Track2 템플릿: 생성 완료\n` +
       `💬 Track3 템플릿: 생성 완료\n` +
       `🗓️ 오늘 실행 플랜: 생성 완료\n` +
+      `📨 파트너 카카오 팩: 생성 완료\n` +
       `${plan.escalation && plan.escalation.enabled ? '🚨 리스크 강화 플랜: 생성 완료\n' : ''}` +
       `⏱️ 소요: ${elapsed}초\n\n` +
       goalStatus
@@ -298,6 +313,7 @@ class MasterAgent {
       days: 7,
       partnerReportOnly: false,
       partnerPerformanceOnly: false,
+      partnerOutreachOnly: false,
     };
     argv.forEach(arg => {
       if (arg.startsWith('--add-exec=')) {
@@ -329,6 +345,9 @@ class MasterAgent {
       }
       if (arg === '--partner-performance') {
         out.partnerPerformanceOnly = true;
+      }
+      if (arg === '--partner-outreach') {
+        out.partnerOutreachOnly = true;
       }
     });
     return out;

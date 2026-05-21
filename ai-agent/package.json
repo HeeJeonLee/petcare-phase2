@@ -10,6 +10,8 @@
     "plan:boost": "node master-agent.js --plan-only --force-escalation",
     "start:boost": "node master-agent.js --force-escalation",
     "goal:add1": "node master-agent.js --add-exec=1",
+    "partner:add": "node master-agent.js --add-partner=파트너명 --count=1",
+    "partner:weekly": "node master-agent.js --partner-report --days=7",
     "test": "node master-agent.js --test",
     "legal-test": "node legal-checker.js",
     "content-test": "node content-generator.js",

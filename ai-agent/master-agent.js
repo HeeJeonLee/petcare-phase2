@@ -52,6 +52,27 @@ class MasterAgent {
       return { success: true, mode: 'add-exec', summary: sum };
     }
 
+    if (options.addPartner) {
+      const report = this.tracker.addPartnerReferral(
+        options.addPartner,
+        options.count || 1,
+        'manual',
+        options.note || 'manual partner add'
+      );
+      const msg = this.tracker.buildPartnerWeeklyMessage(options.days || 7);
+      console.log('\n' + msg.replace(/<[^>]+>/g, ''));
+      await this.publisher.notifyTelegram(msg);
+      return { success: true, mode: 'add-partner', report };
+    }
+
+    if (options.partnerReportOnly) {
+      const msg = this.tracker.buildPartnerWeeklyMessage(options.days || 7);
+      const file = this.publisher.saveToFile('partner-weekly-report', dateStr, msg.replace(/<[^>]+>/g, ''));
+      console.log('\n' + msg.replace(/<[^>]+>/g, ''));
+      await this.publisher.notifyTelegram(msg);
+      return { success: true, mode: 'partner-report', file };
+    }
+
     if (options.planOnly) {
       const plan = this.tracker.buildActionPlan();
       if (options.forceEscalation && plan.riskLevel === 'GREEN') {
@@ -245,7 +266,16 @@ class MasterAgent {
   }
 
   _parseArgs(argv) {
-    const out = { addExec: 0, note: '', planOnly: false, forceEscalation: false };
+    const out = {
+      addExec: 0,
+      note: '',
+      planOnly: false,
+      forceEscalation: false,
+      addPartner: '',
+      count: 1,
+      days: 7,
+      partnerReportOnly: false,
+    };
     argv.forEach(arg => {
       if (arg.startsWith('--add-exec=')) {
         out.addExec = Number(arg.split('=')[1]) || 0;
@@ -253,11 +283,23 @@ class MasterAgent {
       if (arg.startsWith('--note=')) {
         out.note = arg.split('=').slice(1).join('=');
       }
+      if (arg.startsWith('--add-partner=')) {
+        out.addPartner = arg.split('=').slice(1).join('=').trim();
+      }
+      if (arg.startsWith('--count=')) {
+        out.count = Number(arg.split('=')[1]) || 1;
+      }
+      if (arg.startsWith('--days=')) {
+        out.days = Number(arg.split('=')[1]) || 7;
+      }
       if (arg === '--plan-only') {
         out.planOnly = true;
       }
       if (arg === '--force-escalation') {
         out.forceEscalation = true;
+      }
+      if (arg === '--partner-report') {
+        out.partnerReportOnly = true;
       }
     });
     return out;

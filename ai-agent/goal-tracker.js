@@ -33,6 +33,7 @@ class GoalTracker {
       actualExecutions: 0,
       runLogs: [],
       executionLogs: [],
+      partnerReferrals: [],
       updatedAt: new Date().toISOString(),
     };
     this._save(initial);
@@ -83,6 +84,76 @@ class GoalTracker {
 
     this._save(next);
     return this.getSummary();
+  }
+
+  addPartnerReferral(partnerName, count = 1, source = 'manual', note = '') {
+    const name = String(partnerName || '').trim();
+    const safeCount = Number.isFinite(count) ? Math.max(0, Math.floor(count)) : 0;
+    if (!name || !safeCount) return this.getPartnerWeeklyRanking();
+
+    const next = { ...this.state };
+    next.partnerReferrals = next.partnerReferrals || [];
+    next.partnerReferrals.push({
+      timestamp: new Date().toISOString(),
+      partnerName: name,
+      count: safeCount,
+      source,
+      note,
+    });
+
+    this._save(next);
+    return this.getPartnerWeeklyRanking();
+  }
+
+  getPartnerWeeklyRanking(days = 7) {
+    const logs = this.state.partnerReferrals || [];
+    const now = Date.now();
+    const cutoff = now - (Math.max(1, days) * 86400000);
+
+    const bucket = new Map();
+    for (const log of logs) {
+      const ts = new Date(log.timestamp).getTime();
+      if (!Number.isFinite(ts) || ts < cutoff) continue;
+      const key = String(log.partnerName || '').trim() || 'unknown';
+      const prev = bucket.get(key) || 0;
+      bucket.set(key, prev + (Number(log.count) || 0));
+    }
+
+    const ranking = Array.from(bucket.entries())
+      .map(([partnerName, referrals]) => ({ partnerName, referrals }))
+      .sort((a, b) => b.referrals - a.referrals);
+
+    const totalReferrals = ranking.reduce((acc, x) => acc + x.referrals, 0);
+    const activePartners = ranking.length;
+
+    return {
+      days,
+      totalReferrals,
+      activePartners,
+      ranking,
+      generatedAt: new Date().toISOString(),
+    };
+  }
+
+  buildPartnerWeeklyMessage(days = 7) {
+    const report = this.getPartnerWeeklyRanking(days);
+    const lines = [
+      `🤝 <b>파트너 주간 랭킹 (${report.days}일)</b>`,
+      `총 소개건수: ${report.totalReferrals}건 | 활동 파트너: ${report.activePartners}명`,
+      '',
+    ];
+
+    if (!report.ranking.length) {
+      lines.push('아직 기록된 파트너 소개건수가 없습니다.');
+    } else {
+      report.ranking.slice(0, 10).forEach((x, i) => {
+        lines.push(`${i + 1}. ${x.partnerName} - ${x.referrals}건`);
+      });
+    }
+
+    lines.push('');
+    lines.push('기록 예시: node master-agent.js --add-partner=홍길동 --count=2');
+    return lines.join('\n');
   }
 
   getSummary() {

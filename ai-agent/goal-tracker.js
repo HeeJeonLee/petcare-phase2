@@ -358,7 +358,10 @@ class GoalTracker {
       lines.push(`${i + 1}. ${p.partnerName} (등급 ${p.priority})`);
       lines.push(`   소개 ${p.referrals}건 | 실행 ${p.executions}건 | 전환율 ${p.conversionRate}%`);
       lines.push('   권장: 오늘 1:1 카카오 발송 + 24시간 내 팔로업');
-      lines.push(`   맞춤 1줄: ${this._buildPersonalizedOneLiner(p)}`);
+      const tone = this._buildToneVariants(p);
+      lines.push(`   맞춤 1줄(정중): ${tone.formal}`);
+      lines.push(`   맞춤 1줄(친근): ${tone.friendly}`);
+      lines.push(`   맞춤 1줄(강조): ${tone.emphasis}`);
     });
 
     lines.push('');
@@ -380,6 +383,28 @@ class GoalTracker {
       return '좋은 케이스 연결 감사합니다, 오늘은 가능여부 회신 속도를 높여 실행 전환까지 이어가보겠습니다.';
     }
     return '이번 주는 제안 문구를 간결하게 정리해 은행거절/자금급한 고객 중심으로 다시 접촉해보겠습니다.';
+  }
+
+  _buildToneVariants(partner) {
+    const base = this._buildPersonalizedOneLiner(partner);
+
+    const formal = base.replace('감사합니다,', '감사드립니다,');
+
+    const friendly =
+      partner.priority === 'A'
+        ? '지난번 도움 정말 감사합니다. 오늘도 급한 케이스 있으면 바로 연결 주세요, 최우선으로 확인드릴게요.'
+        : partner.priority === 'B'
+          ? '항상 좋은 케이스 공유해주셔서 감사합니다. 오늘도 오시면 빠르게 가능여부부터 먼저 잡아드릴게요.'
+          : '이번에는 케이스 설명을 더 간단히 맞춰서 다시 시도해보면 반응을 올릴 수 있습니다.';
+
+    const emphasis =
+      partner.priority === 'A'
+        ? '오늘은 대표님 루트를 최우선 처리하겠습니다. 은행거절/잔금부족 건은 접수 즉시 빠른 회신드리겠습니다.'
+        : partner.priority === 'B'
+          ? '이번 주 핵심은 속도입니다. 도착 케이스는 당일 가능여부 회신으로 실행 전환을 끌어올리겠습니다.'
+          : '지금은 문구 재정비가 우선입니다. 타겟을 은행거절·긴급자금 고객으로 압축해 재접촉을 권장드립니다.';
+
+    return { formal, friendly, emphasis };
   }
 
   getSummary() {

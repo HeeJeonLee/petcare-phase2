@@ -98,8 +98,14 @@ class GoalTracker {
 
     const expected3mToDate = Math.min(target3m, Math.round(elapsedDays * pace3m));
     const expected6mToDate = Math.min(target6m, Math.round(elapsedDays * pace6m));
+    const remainingDays3m = Math.max(1, 90 - elapsedDays);
+    const remainingDays6m = Math.max(1, 180 - elapsedDays);
 
     const actual = this.state.actualExecutions || 0;
+    const remain3m = Math.max(0, target3m - actual);
+    const remain6m = Math.max(0, target6m - actual);
+    const dailyNeed3m = Math.ceil(remain3m / remainingDays3m);
+    const dailyNeed6m = Math.ceil(remain6m / remainingDays6m);
 
     return {
       startDate: this.state.startDate,
@@ -111,8 +117,48 @@ class GoalTracker {
       expected6mToDate,
       gap3m: actual - expected3mToDate,
       gap6m: actual - expected6mToDate,
+      remainingDays3m,
+      remainingDays6m,
+      dailyNeed3m,
+      dailyNeed6m,
       monthlyNeedFor3m: Math.ceil(target3m / 3),
       monthlyNeedFor6m: Math.ceil(target6m / 6),
+    };
+  }
+
+  getRecentCategories(count = 3) {
+    const logs = this.state.runLogs || [];
+    return logs
+      .slice(-Math.max(1, count))
+      .map(x => x.topicCategory)
+      .filter(Boolean);
+  }
+
+  buildActionPlan() {
+    const s = this.getSummary();
+    let riskLevel = 'GREEN';
+    if (s.gap3m <= -5) riskLevel = 'RED';
+    else if (s.gap3m <= -2) riskLevel = 'YELLOW';
+
+    const dailyExecTarget = Math.max(1, s.dailyNeed3m);
+    const youtubePerWeek = dailyExecTarget >= 2 ? 4 : 3;
+    const instaPerWeek = dailyExecTarget >= 2 ? 5 : 4;
+    const partnerTouchesPerDay = riskLevel === 'RED' ? 5 : riskLevel === 'YELLOW' ? 4 : 3;
+
+    return {
+      riskLevel,
+      dailyExecTarget,
+      weeklyTargets: {
+        youtube: youtubePerWeek,
+        instagram: instaPerWeek,
+        partnerTouches: partnerTouchesPerDay * 7,
+      },
+      todayChecklist: [
+        `유튜브 쇼츠/릴스 핵심 주제 1개 발행`,
+        `공인중개사 접촉 ${partnerTouchesPerDay}건 실행`,
+        `카카오/전화 유입 응답 SLA 10분 이내 유지`,
+        `실행건수 발생 시 즉시 --add-exec 기록`,
+      ],
     };
   }
 
@@ -127,6 +173,7 @@ class GoalTracker {
       `실제 누적: ${s.actualExecutions}건\n` +
       `3개월 목표: ${s.target3m}건 (현재 기준 ${s.expected3mToDate}건, 차이 ${sign3}${s.gap3m})\n` +
       `6개월 목표: ${s.target6m}건 (현재 기준 ${s.expected6mToDate}건, 차이 ${sign6}${s.gap6m})\n` +
+      `일일 필요 실행(3개월 기준): ${s.dailyNeed3m}건\n` +
       `월 필요 페이스: 3개월 ${s.monthlyNeedFor3m}건 / 6개월 ${s.monthlyNeedFor6m}건`
     );
   }

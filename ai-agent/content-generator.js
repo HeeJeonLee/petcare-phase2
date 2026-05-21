@@ -19,14 +19,20 @@ class ContentGenerator {
    * 오늘의 주제 자동 선택
    * 효과 순위(rank) 가중치 적용: 1순위 주제가 더 자주 선택됨
    */
-  selectTodayTopic(dayOfWeek) {
+  selectTodayTopic(dayOfWeek, options = {}) {
     const topics = config.contentTopics;
     const dayIndex = dayOfWeek !== undefined ? dayOfWeek : new Date().getDay();
+    const excluded = new Set(options.excludeCategories || []);
+    const highIntent = new Set([
+      '은행거절해결', '전세퇴거자금', '개인사업자', '추가구입잔금', '전세보증금',
+    ]);
 
     // rank 1 주제는 3배, rank 2는 2배 가중치로 확률 높임
     const weighted = [];
     topics.forEach(t => {
-      const weight = t.rank === 1 ? 3 : t.rank === 2 ? 2 : 1;
+      let weight = t.rank === 1 ? 3 : t.rank === 2 ? 2 : 1;
+      if (highIntent.has(t.category)) weight += 2;
+      if (excluded.has(t.category)) weight = Math.max(1, weight - 2);
       for (let i = 0; i < weight; i++) weighted.push(t);
     });
 

@@ -52,10 +52,22 @@ class MasterAgent {
       return { success: true, mode: 'add-exec', summary: sum };
     }
 
+    if (options.planOnly) {
+      const plan = this.tracker.buildActionPlan();
+      const planText = this._buildDailyPlanText(plan, now);
+      const file = this.publisher.saveToFile('daily-action-plan', dateStr, planText);
+      console.log('\n' + planText);
+      await this.publisher.notifyTelegram(`<b>🗓️ 오늘 실행 플랜</b>\n${planText.replace(/\n/g, '\n')}`);
+      return { success: true, mode: 'plan-only', file, plan };
+    }
+
     this._banner(now);
+    const recentCats = this.tracker.getRecentCategories(3);
+    const plan = this.tracker.buildActionPlan();
+    console.log(`🎯 오늘 리스크 레벨: ${plan.riskLevel} | 일일 목표 실행: ${plan.dailyExecTarget}건`);
 
     // 오늘의 주제 선택
-    const topic = this.generator.selectTodayTopic(now.getDay());
+    const topic = this.generator.selectTodayTopic(now.getDay(), { excludeCategories: recentCats });
     console.log(`\n📌 오늘의 주제: [${topic.category}] ${topic.topic}`);
     console.log(`🏷️  해시태그: ${(topic.hashtags || topic.tags || []).map(t => '#' + t).join(' ')}\n`);
 
@@ -121,9 +133,15 @@ class MasterAgent {
 
     // Track 3: 카카오 전환 응답 템플릿 자동 생성
     await this._runStep('💬 Track3 카카오 상담 템플릿 생성', async () => {
-      const pack = this._buildKakaoPack(topic, now);
+      const pack = this._buildKakaoPack(topic, now, plan);
       const file = this.publisher.saveToFile('track3-kakao-pack', dateStr, pack);
       return { platform: 'track3', topic: topic.topic, file };
+    });
+
+    await this._runStep('🗓️ 일일 실행 플랜 생성', async () => {
+      const text = this._buildDailyPlanText(plan, now);
+      const file = this.publisher.saveToFile('daily-action-plan', dateStr, text);
+      return { platform: 'daily_plan', topic: topic.topic, file };
     });
 
     // 완료 Telegram 알림
@@ -153,6 +171,7 @@ class MasterAgent {
       `🎬 YouTube Shorts: ${ytPosted ? '업로드 완료 ✅' : '스크립트 전송 (토큰 미설정)'}\n` +
       `🤝 Track2 템플릿: 생성 완료\n` +
       `💬 Track3 템플릿: 생성 완료\n` +
+      `🗓️ 오늘 실행 플랜: 생성 완료\n` +
       `⏱️ 소요: ${elapsed}초\n\n` +
       goalStatus
     );
@@ -203,13 +222,16 @@ class MasterAgent {
   }
 
   _parseArgs(argv) {
-    const out = { addExec: 0, note: '' };
+    const out = { addExec: 0, note: '', planOnly: false };
     argv.forEach(arg => {
       if (arg.startsWith('--add-exec=')) {
         out.addExec = Number(arg.split('=')[1]) || 0;
       }
       if (arg.startsWith('--note=')) {
         out.note = arg.split('=').slice(1).join('=');
+      }
+      if (arg === '--plan-only') {
+        out.planOnly = true;
       }
     });
     return out;
@@ -242,18 +264,31 @@ class MasterAgent {
     ].join('\n');
   }
 
-  _buildKakaoPack(topic, now) {
+  _buildKakaoPack(topic, now, plan) {
     const dateK = now.toLocaleDateString('ko-KR');
     return [
       '=== 카카오 상담 전환 템플릿 (Track 3) ===',
       `생성일: ${dateK}`,
       `오늘 주제: [${topic.category}] ${topic.topic}`,
+      `일일 목표 실행: ${plan.dailyExecTarget}건 | 리스크: ${plan.riskLevel}`,
       '',
       '[자동응답 기본]',
       '안녕하세요. 새론금융대부중개입니다.',
       '아파트담보대출 무료 상담 도와드립니다.',
       '무료 한도 확인: saeloan.co.kr',
       '전화 상담: 1555-2137',
+      '',
+      '[키워드 분기: "한도"]',
+      '보유 아파트 주소(구/동)와 기존 대출금만 알려주시면 한도 방향을 빠르게 안내드리겠습니다.',
+      '',
+      '[키워드 분기: "금리"]',
+      '고객 상황별로 금리 구간이 달라 정확한 심사는 필요하지만, 가능한 범위를 먼저 설명드리겠습니다.',
+      '',
+      '[키워드 분기: "조건"/"가능"]',
+      '소득형태(급여/사업/임대), 기존대출, 자금용도 기준으로 가능여부를 확인해드립니다.',
+      '',
+      '[키워드 분기: "거절"]',
+      '은행 거절 사유(DSR/소득/기존대출)를 기준으로 대안 경로를 다시 설계해드립니다.',
       '',
       '[은행 거절 고객 응답]',
       '은행 심사에서 거절되신 경우에도 담보 조건에 따라 가능한 대안이 있습니다.',
@@ -267,6 +302,24 @@ class MasterAgent {
       '새론금융대부중개 | 등록번호 2026-수원-2324',
       '연이자율 6.9%~19.9% (법정최고 연20%)',
       '중개수수료 없음 | 과도한 빚은 큰 불행을 안겨줄 수 있습니다.',
+    ].join('\n');
+  }
+
+  _buildDailyPlanText(plan, now) {
+    const dateK = now.toLocaleDateString('ko-KR');
+    return [
+      '=== 오늘 실행 플랜 (목표 달성형) ===',
+      `기준일: ${dateK}`,
+      `리스크 레벨: ${plan.riskLevel}`,
+      `일일 목표 실행건수: ${plan.dailyExecTarget}건`,
+      '',
+      '[주간 실행 목표]',
+      `- 유튜브 쇼츠: 주 ${plan.weeklyTargets.youtube}회`,
+      `- 인스타 릴스/포스트: 주 ${plan.weeklyTargets.instagram}회`,
+      `- 파트너 접촉: 주 ${plan.weeklyTargets.partnerTouches}건`,
+      '',
+      '[오늘 체크리스트]',
+      ...plan.todayChecklist.map(x => `- ${x}`),
     ].join('\n');
   }
 }

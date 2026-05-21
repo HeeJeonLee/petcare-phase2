@@ -36,6 +36,7 @@ class GoalTracker {
       partnerReferrals: [],
       partnerExecutions: [],
       toneLogs: [],
+      toneHotLocks: [],
       updatedAt: new Date().toISOString(),
     };
     this._save(initial);
@@ -294,6 +295,11 @@ class GoalTracker {
       note,
     });
 
+    // 실행 성과가 나오면 해당 톤을 7일간 우선 고정
+    if (safeOutcome === 'exec') {
+      this._upsertToneHotLock(next, name, safeTone, 7);
+    }
+
     this._save(next);
     return this.getTonePerformance();
   }
@@ -342,6 +348,12 @@ class GoalTracker {
   }
 
   getRecommendedTone(partnerName = '', days = 30) {
+    const partnerHot = this._getActiveToneHotLock(partnerName);
+    if (partnerHot) return partnerHot.tone;
+
+    const globalHot = this._getActiveToneHotLock('__GLOBAL__');
+    if (globalHot) return globalHot.tone;
+
     const partnerReport = this.getTonePerformance(days, partnerName);
     const partnerTop = partnerReport.ranking[0];
     if (partnerTop && partnerTop.sent >= 1) return partnerTop.tone;
@@ -364,6 +376,10 @@ class GoalTracker {
       lines.push(`${this._toneLabel(r.tone)} | ${r.sent} | ${r.reply} | ${r.exec} | ${r.no} | ${r.score}`);
     });
     lines.push('');
+    const hot = this._getActiveToneHotLock(partnerName || '__GLOBAL__');
+    if (hot) {
+      lines.push(`핫 톤 잠금: ${this._toneLabel(hot.tone)} (만료 ${new Date(hot.until).toLocaleString('ko-KR')})`);
+    }
     lines.push(`추천 톤: ${this._toneLabel(this.getRecommendedTone(partnerName, days))}`);
     lines.push('기록 예시: node master-agent.js --tone-feedback=홍길동 --tone=formal --outcome=reply');
     return lines.join('\n');
@@ -537,6 +553,44 @@ class GoalTracker {
     if (tone === 'friendly') return '친근';
     if (tone === 'emphasis') return '강조';
     return '정중';
+  }
+
+  _upsertToneHotLock(state, partnerName, tone, days = 7) {
+    const locks = state.toneHotLocks || [];
+    const now = Date.now();
+    const until = new Date(now + (Math.max(1, days) * 86400000)).toISOString();
+
+    // 만료 잠금 정리
+    const alive = locks.filter(x => new Date(x.until).getTime() > now);
+
+    // 파트너 잠금 업데이트
+    const idx = alive.findIndex(x => x.partnerName === partnerName);
+    if (idx >= 0) {
+      alive[idx] = { partnerName, tone, until, updatedAt: new Date().toISOString() };
+    } else {
+      alive.push({ partnerName, tone, until, updatedAt: new Date().toISOString() });
+    }
+
+    // 전역 잠금도 함께 갱신 (최근 실행 톤 우선 반영)
+    const gidx = alive.findIndex(x => x.partnerName === '__GLOBAL__');
+    if (gidx >= 0) {
+      alive[gidx] = { partnerName: '__GLOBAL__', tone, until, updatedAt: new Date().toISOString() };
+    } else {
+      alive.push({ partnerName: '__GLOBAL__', tone, until, updatedAt: new Date().toISOString() });
+    }
+
+    state.toneHotLocks = alive;
+  }
+
+  _getActiveToneHotLock(partnerName) {
+    const locks = this.state.toneHotLocks || [];
+    const now = Date.now();
+    const target = String(partnerName || '').trim();
+    if (!target) return null;
+
+    const alive = locks.filter(x => new Date(x.until).getTime() > now);
+    const hit = alive.find(x => x.partnerName === target);
+    return hit || null;
   }
 
   getSummary() {

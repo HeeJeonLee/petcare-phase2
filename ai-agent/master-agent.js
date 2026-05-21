@@ -54,16 +54,30 @@ class MasterAgent {
 
     if (options.planOnly) {
       const plan = this.tracker.buildActionPlan();
+      if (options.forceEscalation && plan.riskLevel === 'GREEN') {
+        plan.riskLevel = 'YELLOW';
+        plan.escalation.enabled = true;
+        plan.escalation.mode = 'BOOST';
+      }
       const planText = this._buildDailyPlanText(plan, now);
       const file = this.publisher.saveToFile('daily-action-plan', dateStr, planText);
+      let escalationFile = null;
+      if (plan.escalation && plan.escalation.enabled) {
+        escalationFile = this.publisher.saveToFile('escalation-plan', dateStr, this._buildEscalationPack(plan, now));
+      }
       console.log('\n' + planText);
       await this.publisher.notifyTelegram(`<b>🗓️ 오늘 실행 플랜</b>\n${planText.replace(/\n/g, '\n')}`);
-      return { success: true, mode: 'plan-only', file, plan };
+      return { success: true, mode: 'plan-only', file, escalationFile, plan };
     }
 
     this._banner(now);
     const recentCats = this.tracker.getRecentCategories(3);
     const plan = this.tracker.buildActionPlan();
+    if (options.forceEscalation && plan.riskLevel === 'GREEN') {
+      plan.riskLevel = 'YELLOW';
+      plan.escalation.enabled = true;
+      plan.escalation.mode = 'BOOST';
+    }
     console.log(`🎯 오늘 리스크 레벨: ${plan.riskLevel} | 일일 목표 실행: ${plan.dailyExecTarget}건`);
 
     // 오늘의 주제 선택
@@ -144,6 +158,14 @@ class MasterAgent {
       return { platform: 'daily_plan', topic: topic.topic, file };
     });
 
+    if (plan.escalation && plan.escalation.enabled) {
+      await this._runStep('🚨 리스크 강화 플랜 생성', async () => {
+        const text = this._buildEscalationPack(plan, now);
+        const file = this.publisher.saveToFile('escalation-plan', dateStr, text);
+        return { platform: 'escalation_plan', topic: topic.topic, file };
+      });
+    }
+
     // 완료 Telegram 알림
     const elapsed   = ((Date.now() - start) / 1000).toFixed(1);
     const igPosted  = this.results.some(r => r.igResult  && r.igResult.success);
@@ -172,6 +194,7 @@ class MasterAgent {
       `🤝 Track2 템플릿: 생성 완료\n` +
       `💬 Track3 템플릿: 생성 완료\n` +
       `🗓️ 오늘 실행 플랜: 생성 완료\n` +
+      `${plan.escalation && plan.escalation.enabled ? '🚨 리스크 강화 플랜: 생성 완료\n' : ''}` +
       `⏱️ 소요: ${elapsed}초\n\n` +
       goalStatus
     );
@@ -222,7 +245,7 @@ class MasterAgent {
   }
 
   _parseArgs(argv) {
-    const out = { addExec: 0, note: '', planOnly: false };
+    const out = { addExec: 0, note: '', planOnly: false, forceEscalation: false };
     argv.forEach(arg => {
       if (arg.startsWith('--add-exec=')) {
         out.addExec = Number(arg.split('=')[1]) || 0;
@@ -232,6 +255,9 @@ class MasterAgent {
       }
       if (arg === '--plan-only') {
         out.planOnly = true;
+      }
+      if (arg === '--force-escalation') {
+        out.forceEscalation = true;
       }
     });
     return out;
@@ -317,9 +343,31 @@ class MasterAgent {
       `- 유튜브 쇼츠: 주 ${plan.weeklyTargets.youtube}회`,
       `- 인스타 릴스/포스트: 주 ${plan.weeklyTargets.instagram}회`,
       `- 파트너 접촉: 주 ${plan.weeklyTargets.partnerTouches}건`,
+      `- 강화모드: ${plan.escalation.enabled ? plan.escalation.mode : 'OFF'}`,
       '',
       '[오늘 체크리스트]',
       ...plan.todayChecklist.map(x => `- ${x}`),
+    ].join('\n');
+  }
+
+  _buildEscalationPack(plan, now) {
+    const dateK = now.toLocaleDateString('ko-KR');
+    return [
+      '=== 리스크 강화 플랜 ===',
+      `기준일: ${dateK}`,
+      `리스크 레벨: ${plan.riskLevel}`,
+      `강화 모드: ${plan.escalation.mode}`,
+      '',
+      '[오늘 즉시 실행]',
+      `- 공인중개사 접촉 ${plan.escalation.partnerTouchesPerDay}건 (오전/오후 분할)`,
+      `- 카카오 재접촉 ${plan.escalation.kakaoFollowUpsPerDay}건`,
+      `- 유입 응답 SLA ${plan.escalation.responseSlaMinutes}분 준수`,
+      `- 쇼츠/릴스 추가 발행 1회`,
+      '',
+      '[운영 기준]',
+      '- 확약/과장 문구 금지',
+      '- 대외 명의는 김덕진 대표로 고정',
+      '- CTA는 saeloan.co.kr 단일 링크 유지',
     ].join('\n');
   }
 }

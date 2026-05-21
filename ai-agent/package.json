@@ -7,6 +7,8 @@
     "start": "node master-agent.js",
     "start:daily": "node master-agent.js",
     "plan:today": "node master-agent.js --plan-only",
+    "plan:boost": "node master-agent.js --plan-only --force-escalation",
+    "start:boost": "node master-agent.js --force-escalation",
     "goal:add1": "node master-agent.js --add-exec=1",
     "test": "node master-agent.js --test",
     "legal-test": "node legal-checker.js",

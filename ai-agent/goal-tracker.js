@@ -143,7 +143,9 @@ class GoalTracker {
     const dailyExecTarget = Math.max(1, s.dailyNeed3m);
     const youtubePerWeek = dailyExecTarget >= 2 ? 4 : 3;
     const instaPerWeek = dailyExecTarget >= 2 ? 5 : 4;
-    const partnerTouchesPerDay = riskLevel === 'RED' ? 5 : riskLevel === 'YELLOW' ? 4 : 3;
+    const partnerTouchesPerDay = riskLevel === 'RED' ? 6 : riskLevel === 'YELLOW' ? 4 : 3;
+    const kakaoFollowUpsPerDay = riskLevel === 'RED' ? 8 : riskLevel === 'YELLOW' ? 5 : 3;
+    const responseSlaMinutes = riskLevel === 'RED' ? 5 : 10;
 
     return {
       riskLevel,
@@ -153,10 +155,18 @@ class GoalTracker {
         instagram: instaPerWeek,
         partnerTouches: partnerTouchesPerDay * 7,
       },
+      escalation: {
+        enabled: riskLevel !== 'GREEN',
+        mode: riskLevel === 'RED' ? 'EMERGENCY' : 'BOOST',
+        partnerTouchesPerDay,
+        kakaoFollowUpsPerDay,
+        responseSlaMinutes,
+      },
       todayChecklist: [
         `유튜브 쇼츠/릴스 핵심 주제 1개 발행`,
         `공인중개사 접촉 ${partnerTouchesPerDay}건 실행`,
-        `카카오/전화 유입 응답 SLA 10분 이내 유지`,
+        `카카오/전화 유입 응답 SLA ${responseSlaMinutes}분 이내 유지`,
+        `카카오 재접촉 ${kakaoFollowUpsPerDay}건 실행`,
         `실행건수 발생 시 즉시 --add-exec 기록`,
       ],
     };

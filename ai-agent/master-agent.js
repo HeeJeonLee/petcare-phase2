@@ -102,6 +102,14 @@ class MasterAgent {
       return { success: true, mode: 'partner-outreach', file };
     }
 
+    if (options.partnerTodayTopOnly) {
+      const text = this.tracker.buildTodayTopPartnersMessage(options.days || 30, options.topLimit || 3);
+      const file = this.publisher.saveToFile('partner-today-top', dateStr, text.replace(/<[^>]+>/g, ''));
+      console.log('\n' + text.replace(/<[^>]+>/g, ''));
+      await this.publisher.notifyTelegram(text);
+      return { success: true, mode: 'partner-today-top', file };
+    }
+
     if (options.planOnly) {
       const plan = this.tracker.buildActionPlan();
       if (options.forceEscalation && plan.riskLevel === 'GREEN') {
@@ -214,6 +222,12 @@ class MasterAgent {
       return { platform: 'partner_outreach', topic: topic.topic, file };
     });
 
+    await this._runStep('🎯 오늘 발송 대상 TOP3 생성', async () => {
+      const text = this.tracker.buildTodayTopPartnersMessage(30, 3);
+      const file = this.publisher.saveToFile('partner-today-top', dateStr, text.replace(/<[^>]+>/g, ''));
+      return { platform: 'partner_today_top', topic: topic.topic, file };
+    });
+
     if (plan.escalation && plan.escalation.enabled) {
       await this._runStep('🚨 리스크 강화 플랜 생성', async () => {
         const text = this._buildEscalationPack(plan, now);
@@ -251,6 +265,7 @@ class MasterAgent {
       `💬 Track3 템플릿: 생성 완료\n` +
       `🗓️ 오늘 실행 플랜: 생성 완료\n` +
       `📨 파트너 카카오 팩: 생성 완료\n` +
+      `🎯 오늘 발송 대상 TOP3: 생성 완료\n` +
       `${plan.escalation && plan.escalation.enabled ? '🚨 리스크 강화 플랜: 생성 완료\n' : ''}` +
       `⏱️ 소요: ${elapsed}초\n\n` +
       goalStatus
@@ -314,6 +329,8 @@ class MasterAgent {
       partnerReportOnly: false,
       partnerPerformanceOnly: false,
       partnerOutreachOnly: false,
+      partnerTodayTopOnly: false,
+      topLimit: 3,
     };
     argv.forEach(arg => {
       if (arg.startsWith('--add-exec=')) {
@@ -334,6 +351,9 @@ class MasterAgent {
       if (arg.startsWith('--days=')) {
         out.days = Number(arg.split('=')[1]) || 7;
       }
+      if (arg.startsWith('--top-limit=')) {
+        out.topLimit = Number(arg.split('=')[1]) || 3;
+      }
       if (arg === '--plan-only') {
         out.planOnly = true;
       }
@@ -348,6 +368,9 @@ class MasterAgent {
       }
       if (arg === '--partner-outreach') {
         out.partnerOutreachOnly = true;
+      }
+      if (arg === '--partner-today-top') {
+        out.partnerTodayTopOnly = true;
       }
     });
     return out;

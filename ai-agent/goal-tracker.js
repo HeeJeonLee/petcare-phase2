@@ -317,6 +317,54 @@ class GoalTracker {
     return lines.join('\n');
   }
 
+  getTodayTopPartners(days = 30, limit = 3) {
+    const report = this.getPartnerPerformance(days);
+    const aGrade = report.rows.filter(x => x.priority === 'A');
+    const bGrade = report.rows.filter(x => x.priority === 'B');
+
+    const picked = [];
+    for (const p of aGrade) {
+      if (picked.length >= limit) break;
+      picked.push(p);
+    }
+    for (const p of bGrade) {
+      if (picked.length >= limit) break;
+      picked.push(p);
+    }
+
+    return {
+      days,
+      limit,
+      picked,
+      generatedAt: new Date().toISOString(),
+    };
+  }
+
+  buildTodayTopPartnersMessage(days = 30, limit = 3) {
+    const top = this.getTodayTopPartners(days, limit);
+    const lines = [
+      `🎯 <b>오늘 발송 대상 TOP ${top.limit}</b>`,
+      `기준 기간: 최근 ${top.days}일`,
+      '',
+    ];
+
+    if (!top.picked.length) {
+      lines.push('A/B 등급 파트너 데이터가 없어 오늘 발송 대상이 없습니다.');
+      lines.push('먼저 소개/실행 데이터를 누적해 주세요.');
+      return lines.join('\n');
+    }
+
+    top.picked.forEach((p, i) => {
+      lines.push(`${i + 1}. ${p.partnerName} (등급 ${p.priority})`);
+      lines.push(`   소개 ${p.referrals}건 | 실행 ${p.executions}건 | 전환율 ${p.conversionRate}%`);
+      lines.push('   권장: 오늘 1:1 카카오 발송 + 24시간 내 팔로업');
+    });
+
+    lines.push('');
+    lines.push('즉시 실행: npm run partner:outreach');
+    return lines.join('\n');
+  }
+
   getSummary() {
     const now = new Date();
     const start = new Date(this.state.startDate + 'T00:00:00');

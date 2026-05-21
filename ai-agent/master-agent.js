@@ -25,6 +25,7 @@ const ContentGenerator = require('./content-generator');
 const LegalChecker     = require('./legal-checker');
 const SNSPublisher     = require('./sns-publisher');
 const YouTubeAuto      = require('./youtube-auto');
+const GoalTracker      = require('./goal-tracker');
 
 class MasterAgent {
   constructor() {
@@ -32,6 +33,7 @@ class MasterAgent {
     this.checker   = new LegalChecker();
     this.publisher = new SNSPublisher();
     this.youtube   = new YouTubeAuto();
+    this.tracker   = new GoalTracker();
     this.results   = [];
     this.errors    = [];
   }
@@ -40,6 +42,15 @@ class MasterAgent {
     const start   = Date.now();
     const now     = new Date();
     const dateStr = now.toISOString().slice(0, 10);
+    const options = this._parseArgs(process.argv.slice(2));
+
+    if (options.addExec > 0) {
+      const sum = this.tracker.addExecutions(options.addExec, 'manual', options.note || 'manual add');
+      const msg = this.tracker.buildStatusMessage();
+      console.log('\n' + msg.replace(/<[^>]+>/g, ''));
+      await this.publisher.notifyTelegram(msg);
+      return { success: true, mode: 'add-exec', summary: sum };
+    }
 
     this._banner(now);
 
@@ -101,11 +112,37 @@ class MasterAgent {
       return { platform: 'youtube_shorts', topic: topic.topic, ytResult };
     });
 
+    // Track 2: 부동산 파트너십 실행 지원 템플릿 자동 생성
+    await this._runStep('🤝 Track2 파트너십 템플릿 생성', async () => {
+      const pack = this._buildPartnerPack(topic, now);
+      const file = this.publisher.saveToFile('track2-partner-pack', dateStr, pack);
+      return { platform: 'track2', topic: topic.topic, file };
+    });
+
+    // Track 3: 카카오 전환 응답 템플릿 자동 생성
+    await this._runStep('💬 Track3 카카오 상담 템플릿 생성', async () => {
+      const pack = this._buildKakaoPack(topic, now);
+      const file = this.publisher.saveToFile('track3-kakao-pack', dateStr, pack);
+      return { platform: 'track3', topic: topic.topic, file };
+    });
+
     // 완료 Telegram 알림
     const elapsed   = ((Date.now() - start) / 1000).toFixed(1);
     const igPosted  = this.results.some(r => r.igResult  && r.igResult.success);
     const thPosted  = this.results.some(r => r.thResult  && r.thResult.success);
     const ytPosted  = this.results.some(r => r.ytResult  && r.ytResult.success);
+
+    this.tracker.recordRun({
+      topicCategory: topic.category,
+      topic: topic.topic,
+      postedInstagram: igPosted,
+      postedThreads: thPosted,
+      postedYoutube: ytPosted,
+      track2ActionPrepared: this.results.some(r => r.platform === 'track2' && r.file),
+      track3ActionPrepared: this.results.some(r => r.platform === 'track3' && r.file),
+    });
+
+    const goalStatus = this.tracker.buildStatusMessage();
 
     await this.publisher.notifyTelegram(
       `<b>✅ 새론금융 AI 에이전트 완료</b>\n` +
@@ -114,7 +151,10 @@ class MasterAgent {
       `📸 Instagram: ${igPosted ? '게시 완료 ✅' : '파일 저장 (토큰 미설정)'}\n` +
       `🔁 Threads: ${thPosted ? '크로스포스팅 ✅' : '건너뜀 (토큰 미설정)'}\n` +
       `🎬 YouTube Shorts: ${ytPosted ? '업로드 완료 ✅' : '스크립트 전송 (토큰 미설정)'}\n` +
-      `⏱️ 소요: ${elapsed}초`
+      `🤝 Track2 템플릿: 생성 완료\n` +
+      `💬 Track3 템플릿: 생성 완료\n` +
+      `⏱️ 소요: ${elapsed}초\n\n` +
+      goalStatus
     );
 
     // 로그 저장
@@ -133,6 +173,8 @@ class MasterAgent {
       console.log('\n💡 YouTube 완전 자동화 활성화:');
       console.log('   ELEVENLABS_API_KEY, YOUTUBE_CLIENT_ID, YOUTUBE_CLIENT_SECRET, YOUTUBE_REFRESH_TOKEN');
     }
+    console.log('\n📊 실행건수 페이스:');
+    console.log(goalStatus.replace(/<[^>]+>/g, ''));
     console.log('═'.repeat(54) + '\n');
 
     return { success: this.errors.length === 0, results: this.results, errors: this.errors };
@@ -158,6 +200,74 @@ class MasterAgent {
     console.log(`📌 대표: 김덕진 · 1555-2137 · 010-5927-9205`);
     console.log(`🔒 홈페이지 ≠ SNS (완전 분리, 절대 불변)`);
     console.log('═'.repeat(54));
+  }
+
+  _parseArgs(argv) {
+    const out = { addExec: 0, note: '' };
+    argv.forEach(arg => {
+      if (arg.startsWith('--add-exec=')) {
+        out.addExec = Number(arg.split('=')[1]) || 0;
+      }
+      if (arg.startsWith('--note=')) {
+        out.note = arg.split('=').slice(1).join('=');
+      }
+    });
+    return out;
+  }
+
+  _buildPartnerPack(topic, now) {
+    const dateK = now.toLocaleDateString('ko-KR');
+    return [
+      '=== 부동산 파트너십 제안 메시지 (Track 2) ===',
+      `생성일: ${dateK}`,
+      `오늘 주제: [${topic.category}] ${topic.topic}`,
+      '',
+      '[카카오 1:1 첫 제안]',
+      '안녕하세요, 새론금융대부중개 김덕진 대표입니다.',
+      '서울/수도권 아파트담보대출 상담을 전문으로 하고 있으며,',
+      '은행 한도 초과·DSR 이슈 고객의 대안 설계를 도와드리고 있습니다.',
+      '거래 중 자금 이슈 고객이 있으시면 신속하게 피드백 드리겠습니다.',
+      '등록번호: 2026-수원-2324 | 홈페이지: saeloan.co.kr',
+      '',
+      '[후속 팔로업 (3일 후)]',
+      '안녕하세요 대표님, 지난번 안내드린 아파트담보 상담 건 관련해 다시 인사드립니다.',
+      '급한 잔금/보증금 반환/사업자 담보 이슈 고객은 우선순위로 대응 가능합니다.',
+      '필요 시 케이스 요약만 보내주셔도 빠르게 가능여부 안내드리겠습니다.',
+      '',
+      '[운영 원칙]',
+      '- 리베이트/수수료 제안 금지 (법규 준수)',
+      '- 무리한 확약 표현 금지',
+      '- 모든 상담은 홈페이지/대표번호로 일원화',
+      '- 대외 명의는 김덕진 대표로만 유지',
+    ].join('\n');
+  }
+
+  _buildKakaoPack(topic, now) {
+    const dateK = now.toLocaleDateString('ko-KR');
+    return [
+      '=== 카카오 상담 전환 템플릿 (Track 3) ===',
+      `생성일: ${dateK}`,
+      `오늘 주제: [${topic.category}] ${topic.topic}`,
+      '',
+      '[자동응답 기본]',
+      '안녕하세요. 새론금융대부중개입니다.',
+      '아파트담보대출 무료 상담 도와드립니다.',
+      '무료 한도 확인: saeloan.co.kr',
+      '전화 상담: 1555-2137',
+      '',
+      '[은행 거절 고객 응답]',
+      '은행 심사에서 거절되신 경우에도 담보 조건에 따라 가능한 대안이 있습니다.',
+      '현재 보유 아파트 위치/시세/기존대출만 알려주시면 빠르게 방향 안내드리겠습니다.',
+      '',
+      '[전세퇴거자금 응답]',
+      '보증금 반환 일정이 촉박한 경우 우선순위로 검토해드립니다.',
+      '가능여부는 케이스마다 달라서 기본 정보 확인 후 신속히 안내드리겠습니다.',
+      '',
+      '[법정 고지 요약]',
+      '새론금융대부중개 | 등록번호 2026-수원-2324',
+      '연이자율 6.9%~19.9% (법정최고 연20%)',
+      '중개수수료 없음 | 과도한 빚은 큰 불행을 안겨줄 수 있습니다.',
+    ].join('\n');
   }
 }
 

@@ -150,51 +150,6 @@ ${config.legalDisclosure.replace(/\n/g, '<br>')}</p>`;
     }
   }
 
-<h2>(소제목 3 — 선택)</h2>
-<p>(본문 문단)</p>
-
-<p><strong>아파트 담보대출 무료 상담: ☎ 1555-2137</strong></p>`;
-
-    try {
-      const response = await this.client.messages.create({
-        model: config.ai.model,
-        max_tokens: config.ai.maxTokens,
-        messages: [{ role: 'user', content: prompt }],
-      });
-
-      const raw = response.content[0].text;
-
-      // 제목 파싱
-      const titleMatch = raw.match(/===TITLE===\s*\n(.+)/);
-      const title = titleMatch ? titleMatch[1].trim() : topic.topic;
-
-      // HTML 본문 파싱
-      const contentMatch = raw.match(/===CONTENT===\s*\n([\s\S]+)/);
-      const htmlBody = contentMatch ? contentMatch[1].trim() : `<p>${raw}</p>`;
-
-      // 법정 고지문 HTML로 추가
-      const legalHtml = `<hr><p style="font-size:11px; color:#666; line-height:1.8;">
-${config.legalDisclosure.replace(/\n/g, '<br>')}</p>`;
-      const finalHtml = htmlBody + '\n' + legalHtml;
-
-      // 텍스트 버전 (법규 검사용)
-      const textContent = finalHtml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-
-      return {
-        platform: 'naver_blog',
-        title,
-        htmlContent: finalHtml,
-        textContent,
-        tags: topicTags,
-        legalCheck: this.checker.check(textContent),
-        generatedAt: new Date().toISOString(),
-      };
-    } catch (err) {
-      console.error('네이버 블로그 생성 오류:', err.message);
-      throw err;
-    }
-  }
-
   /**
    * 인스타그램 캡션 생성
    * ─────────────────────────────────────────────────

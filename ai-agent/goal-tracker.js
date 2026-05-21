@@ -358,11 +358,28 @@ class GoalTracker {
       lines.push(`${i + 1}. ${p.partnerName} (등급 ${p.priority})`);
       lines.push(`   소개 ${p.referrals}건 | 실행 ${p.executions}건 | 전환율 ${p.conversionRate}%`);
       lines.push('   권장: 오늘 1:1 카카오 발송 + 24시간 내 팔로업');
+      lines.push(`   맞춤 1줄: ${this._buildPersonalizedOneLiner(p)}`);
     });
 
     lines.push('');
     lines.push('즉시 실행: npm run partner:outreach');
     return lines.join('\n');
+  }
+
+  _buildPersonalizedOneLiner(partner) {
+    if (partner.priority === 'A' && partner.conversionRate >= 40) {
+      return '대표님 루트는 전환이 매우 높아 오늘은 은행거절/잔금부족 케이스 우선 배정드리겠습니다.';
+    }
+    if (partner.priority === 'A') {
+      return '지난 케이스 빠른 연결 감사합니다, 오늘도 긴급 보증금/잔금 이슈 고객 우선 대응하겠습니다.';
+    }
+    if (partner.priority === 'B' && partner.referrals >= 5) {
+      return '소개 흐름이 좋아지고 있어 이번 주는 조건 좋은 케이스부터 신속 회신으로 전환률을 더 끌어올리겠습니다.';
+    }
+    if (partner.priority === 'B') {
+      return '좋은 케이스 연결 감사합니다, 오늘은 가능여부 회신 속도를 높여 실행 전환까지 이어가보겠습니다.';
+    }
+    return '이번 주는 제안 문구를 간결하게 정리해 은행거절/자금급한 고객 중심으로 다시 접촉해보겠습니다.';
   }
 
   getSummary() {

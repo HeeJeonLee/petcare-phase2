@@ -1,0 +1,28 @@
+{
+  "name": "copilot-memory-extension",
+  "displayName": "Copilot Memory Loader",
+  "description": "자동으로 핵심 파일을 읽고 Copilot 세션/컨텍스트를 복구하는 VS Code 확장",
+  "version": "0.0.1",
+  "engines": { "vscode": ">=1.70.0" },
+  "categories": ["Other"],
+  "activationEvents": ["onStartupFinished"],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "copilot-memory-loader.recoverSession",
+        "title": "Copilot: 세션/컨텍스트 자동 복구"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/node": "^18.0.0",
+    "typescript": "^4.8.0",
+    "vscode": "^1.1.38"
+  }
+}
